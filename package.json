@@ -1,0 +1,31 @@
+{
+  "name": "@rolling/ui-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rolling 的 Tauri 桌面应用 UI 套件：毛玻璃主题 + 窗口骨架 + 面板生命周期 + 原生背景与日志桥接",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./index.css": "./src/index.css",
+    "./tokens.css": "./src/tokens.css",
+    "./shell.css": "./src/shell.css",
+    "./glass.css": "./src/glass.css",
+    "./ui": "./src/ui.js",
+    "./shell": "./src/shell.js",
+    "./theme": "./src/theme.js",
+    "./tauri": "./src/tauri.js",
+    "./shell.template.html": "./src/shell.template.html"
+  },
+  "files": [
+    "src",
+    "rust"
+  ],
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
+}

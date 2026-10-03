@@ -1,0 +1,34 @@
+[package]
+name = "tauri-ui-kit"
+version = "0.1.0"
+edition = "2021"
+description = "Rolling 的 Tauri 桌面应用 UI 套件（原生侧）：窗口背景 + 窗口控制 + 前端日志"
+license = "MIT"
+repository = "https://github.com/Rolling-39/tauri-ui-kit"
+publish = false
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+window-vibrancy = "0.6"
+
+# 环境适配，不是业务依赖，别删：
+# schemars（tauri 的传递依赖）在开启 preserve_order 特性时写的是 indexmap 1.x 的
+# `IndexMap<K, V>` 两参数形式，而该形式只有在 indexmap 的 `std` 特性开启时才成立
+# （否则 S 没有默认值，直接报 E0107）。indexmap 1.9 的构建脚本用 autocfg 探测 std，
+# 在本机环境下探测失败，于是整个树编译不过。
+#
+# 必须同时声明在 [dependencies] 和 [build-dependencies]：
+# indexmap 被构建期那一侧（tauri → tauri-build → schemars）和普通依赖侧各拉了一份，
+# 而 resolver v2 对构建期依赖与普通依赖的特性分开解析，只声明一处不会生效。
+# 两处都声明后特性才合并得上，下游应用也因此省掉了这一步。
+indexmap = { version = "1.9", default-features = false, features = ["std", "serde-1"] }
+
+# 只用来读 Windows 构建号，以便在返回值里回报"实际走了哪条后端分支"。
+# window-vibrancy 自己已经依赖它，所以不增加依赖树体积。
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-version = "0.1"
+
+# 同上，构建期依赖域必须单独再声明一遍，否则 schemars 仍然编译不过。
+[build-dependencies]
+indexmap = { version = "1.9", default-features = false, features = ["std", "serde-1"] }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!--
+  ui-kit / shell.template.html —— 窗口骨架模板
+  复制到你项目的 src/index.html，改三处：<title>、sidebar-title、sidebar-footer。
+  导航项不用写：createShell() 会按面板清单生成。
+  <head> 里不要加内联 background 样式 —— 背景策略由 shell.css + theme.js 统一管。
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="transparent" />
+    <title>__APP_NAME__</title>
+</head>
+<body>
+    <div class="app">
+        <!-- decorations: false 之后，拖拽与双击最大化靠 data-tauri-drag-region -->
+        <header class="titlebar" data-tauri-drag-region>
+            <span class="titlebar-title" id="tbTitle">__APP_NAME__</span>
+            <div class="titlebar-controls">
+                <button class="tb-btn" id="tbMin" title="最小化">-</button>
+                <button class="tb-btn" id="tbMax" title="最大化">+</button>
+                <button class="tb-btn tb-close" id="tbClose" title="关闭">x</button>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <aside class="sidebar">
+                <div class="sidebar-title">__APP_NAME__</div>
+                <nav class="sidebar-nav" id="sidebarNav"></nav>
+                <!-- 可选：状态卡片、页脚 -->
+                <div class="sidebar-footer">© Rolling</div>
+            </aside>
+            <main class="content" id="content"></main>
+        </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+</body>
+</html>

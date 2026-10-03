@@ -1,0 +1,368 @@
+/* ─────────────────────────────────────────────────────────────
+   ui-kit / glass.css —— 通用组件层
+   ─────────────────────────────────────────────────────────────
+   类名与 Base64 / S2PNG / Keypad 三个项目保持一致，迁移时不需要改
+   HTML 里的 class。这里只放跨项目通用的原语；带业务含义的组件
+   （键盘可视化 .keycap/.stage、宏编辑器 .macro-*、测试网格 .test-*、
+   色板 .swatch 等）留在各自项目里。
+
+   所有品牌色一律写成 rgba(var(--primary-rgb), α)，不写字面色值：
+   换主题时不需要再逐个 grep 十处 rgba(57,197,187,…)。
+   ───────────────────────────────────────────────────────────── */
+
+/* ── 卡片 ── */
+.card {
+    background: var(--surface-glass);
+    border: 0.5px solid var(--outline);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card > .card-header:only-child { margin-bottom: 0; }
+
+/* ── 分段开关 ── */
+.toggle-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--surface-glass);
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border: none;
+    background: transparent;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.toggle-btn.active { background: var(--primary); color: var(--on-primary); font-weight: 500; }
+.toggle-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ── 输入 ── */
+.input,
+.textarea,
+.select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 0.5px solid var(--outline);
+    border-radius: var(--radius-sm);
+    background: var(--surface-glass);
+    color: var(--on-surface);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.textarea {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.6;
+    border-radius: var(--radius);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+}
+
+.input::placeholder,
+.textarea::placeholder { color: var(--on-surface-variant); opacity: 0.5; }
+
+.select { cursor: pointer; font-family: var(--font); }
+/* 下拉展开面板由系统绘制，不跟随 CSS 变量，必须显式给深色底 */
+.select option { background: #191C1C; color: #E0E3E1; }
+
+.range { width: 100%; accent-color: var(--primary); }
+.input-narrow { width: 90px; }
+
+/* ── 按钮 ── */
+.btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-family: var(--font);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    box-shadow: var(--shadow-primary);
+}
+.btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+.btn-outline {
+    background: var(--surface-glass);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+.btn-outline:hover { background: var(--primary-container); }
+
+.btn-tonal { background: var(--primary); color: var(--on-primary); opacity: 0.85; }
+.btn-tonal:hover { opacity: 1; }
+
+.btn-text { background: transparent; color: var(--primary); padding: 8px 14px; }
+.btn-text:hover { background: var(--primary-container); }
+
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { filter: brightness(1.08); }
+
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn-row .btn { flex: 0 1 auto; }
+/* 撑满型按钮行（Base64 的加密页用的是这种） */
+.btn-row.fill .btn { flex: 1; min-width: 140px; }
+
+/* ── 文字 ── */
+.label { font-size: 12px; color: var(--on-surface-variant); }
+.label-primary { color: var(--primary); font-weight: 500; }
+.label-strong { font-weight: 500; }
+.hint { font-size: 12px; color: var(--on-surface-variant); line-height: 1.7; }
+.mono { font-family: var(--mono); }
+.ok-text { color: var(--success); }
+.err-text { color: var(--danger); }
+.warn-text { color: var(--warn); }
+
+/* ── 字段组 ── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > .label { font-weight: 500; }
+
+/* ── 标签块 ── */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    border: 0.5px solid var(--outline);
+    background: var(--surface-glass);
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--transition);
+}
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 500; }
+
+.bind-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--primary-container);
+    color: var(--primary);
+}
+.bind-chip.none { background: var(--surface-variant); color: var(--on-surface-variant); }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    background: var(--primary-container);
+    color: var(--primary);
+}
+.badge.ok { background: rgba(var(--success-rgb), 0.15); color: var(--success); }
+.badge.err { background: rgba(var(--danger-rgb), 0.15); color: var(--danger); }
+.badge.warn { background: rgba(var(--warn-rgb), 0.15); color: var(--warn); }
+
+/* ── 状态点 ── */
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--on-surface-variant);
+    flex-shrink: 0;
+}
+/* .on 保持品牌色（Keypad 现状），不改成 --success：换色属于视觉变更，
+   要改应先在各项目实机确认，不能在抽库时顺手换掉。 */
+.dot.on { background: var(--primary); }
+.dot.warn { background: var(--warn); }
+.dot.off { background: var(--danger); }
+
+/* ── 指标网格 ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; }
+
+.stat {
+    background: var(--surface-variant);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    border: 0.5px solid var(--outline);
+}
+.stat .k { font-size: 12px; color: var(--on-surface-variant); margin-bottom: 4px; }
+.stat .v { font-size: 20px; font-weight: 500; }
+.stat .u { font-size: 12px; color: var(--on-surface-variant); font-weight: 400; margin-left: 3px; }
+
+/* ── 键值行 ── */
+.kv {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: 13px;
+    border-bottom: 0.5px solid var(--outline);
+}
+.kv:last-child { border-bottom: none; }
+.kv .k { color: var(--on-surface-variant); }
+.kv .v { font-family: var(--mono); }
+
+/* ── 结果区 ── */
+.result-scroll {
+    max-height: 260px;
+    min-height: 60px;
+    overflow: auto;
+    background: var(--surface-glass-strong);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: text;
+    border: 0.5px solid var(--outline);
+}
+
+.result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--outline);
+    background: var(--surface-glass);
+    font-size: 13px;
+}
+.result-item.success { border-left: 3px solid var(--success); }
+.result-item.fail { border-left: 3px solid var(--danger); }
+.result-item .icon { font-family: var(--mono); font-size: 11px; flex-shrink: 0; width: 30px; }
+.result-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-item .msg { font-size: 11px; color: var(--on-surface-variant); font-family: var(--mono); }
+.result-item .act { flex-shrink: 0; }
+
+.result-image {
+    max-width: 100%;
+    max-height: 340px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    border: 0.5px solid var(--outline);
+    background: var(--surface-glass);
+}
+
+/* ── 空状态 ── */
+.empty-state {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--on-surface-variant);
+    font-size: 13px;
+}
+
+/* ── 进度与加载 ── */
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface-variant);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.2s;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border: 2.5px solid var(--surface-variant);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(1turn); } }
+
+.loading-row {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+}
+.loading-row.show { display: flex; }
+
+/* ── 提示条 ── */
+.snackbar {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: var(--on-primary);
+    padding: 10px 24px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 100;
+    animation: snackIn 0.25s ease;
+    max-width: 70vw;
+    box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.4);
+}
+.snackbar.err { background: var(--danger); color: #fff; }
+.snackbar.warn { background: var(--warn); color: #fff; }
+
+@keyframes snackIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── 最近一次操作的耗时/状态行 ── */
+.status-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--on-surface-variant);
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!-- ui-kit 组件预览。不需要 Tauri、不需要构建，起个静态服务就能看。
+     用法：python -m http.server 8899 --directory E:/AI_Coding_File/ui-kit 然后开 /demo/ -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ui-kit 预览</title>
+    <link rel="stylesheet" href="../src/index.css" />
+    <style>
+        /* 仅 demo 用：造一个假桌面，用来演示「有原生模糊」和「走兜底」两种状态的区别。
+           真实应用里这两件事由 theme.js + 原生层自动决定，不需要这些规则。 */
+        .demo-desktop { display: none; position: fixed; inset: 0; z-index: -1; }
+        .demo-desktop i { position: absolute; display: block; border-radius: 50%; filter: blur(2px); }
+        html.demo-blur { background: transparent !important; }
+        html.demo-blur .demo-desktop { display: block; }
+    </style>
+</head>
+<body>
+    <div class="demo-desktop" aria-hidden="true">
+        <i style="width:420px;height:420px;left:-80px;top:-60px;background:#2f6f68"></i>
+        <i style="width:300px;height:300px;right:60px;top:120px;background:#7a4f8a"></i>
+        <i style="width:360px;height:360px;left:280px;bottom:-120px;background:#3a5c9e"></i>
+    </div>
+
+    <div class="app">
+        <header class="titlebar" data-tauri-drag-region>
+            <span class="titlebar-title" id="tbTitle">ui-kit 预览</span>
+            <div class="titlebar-controls">
+                <button class="tb-btn" id="tbMin" title="最小化">-</button>
+                <button class="tb-btn" id="tbMax" title="最大化">+</button>
+                <button class="tb-btn tb-close" id="tbClose" title="关闭">x</button>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <aside class="sidebar">
+                <div class="sidebar-title">ui-kit</div>
+                <nav class="sidebar-nav" id="sidebarNav"></nav>
+                <div class="sidebar-footer">© Rolling</div>
+            </aside>
+            <main class="content" id="content"></main>
+        </div>
+    </div>
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
