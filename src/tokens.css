@@ -38,6 +38,11 @@
     --on-surface-variant: #3F4946;
     --outline: rgba(111, 121, 118, 0.3);
 
+    /* 下拉框展开面板由系统绘制，不跟随 CSS 变量，必须显式给底色，
+       否则浅色模式下会弹出深色面板（或反过来）。 */
+    --select-bg: #FAFDFB;
+    --select-fg: #191C1C;
+
     /* ── 原生窗口背景 ── */
     /* Windows Acrylic / macOS Vibrancy 的着色，格式 "r, g, b, a"，a 为 0-255。
        浅色与深色各给一份：原先三个项目在两个模式下都用同一个深色 tint，
@@ -82,6 +87,9 @@
         --on-surface: #E0E3E1;
         --on-surface-variant: #BEC9C6;
         --outline: rgba(137, 147, 144, 0.35);
+
+        --select-bg: #191C1C;
+        --select-fg: #E0E3E1;
 
         --backdrop-tint: 18, 18, 18, 64;
         --backdrop-fallback: linear-gradient(135deg, #0f1a18 0%, #122420 30%, #0d1f1a 60%, #101c19 100%);

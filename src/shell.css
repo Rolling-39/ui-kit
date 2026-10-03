@@ -5,20 +5,19 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* ── 背景策略（这套 UI 最容易翻车的地方）──
-   默认走兜底：不透明底，永远可读。
-   只有 theme.js 探测到原生模糊真的生效了，才会给 <html> 加上
-   .backdrop-ok，此时才切成透明 + 让原生 Acrylic 透出来。
-   反过来做（默认透明、失败再补底色）会在 Linux 或老系统上
-   糊成一团白字，且用户看不出是故障。 */
-html {
-    background: var(--backdrop-fallback);
-    background-attachment: fixed;
-    color-scheme: dark light;
-}
+   真正在模糊的是窗口后面的桌面（DWM / Vibrancy），CSS 只负责把表面做成
+   半透明。而原生模糊不是所有平台都有：Linux 没有，Windows 10 1809 以下没有。
+   如果默认就把窗口做成透明 + 表面 0.15 不透明度，在这些平台上得到的是
+   「文字直接糊在桌面上」，而用户只会以为是自己眼花了。
 
-html.backdrop-ok,
-html.backdrop-ok body {
-    background: transparent !important;
+   所以兜底底色是**页面内的一层** .backdrop-fallback，而不是 <html> 的
+   background —— 因为"原生模糊到底生没生效"要等一次 Rust 往返才能知道，
+   靠切换 <html> 的背景，切换前会先闪一下不透明渐变再变成透明玻璃。
+   这一层写在 HTML 首屏里，从第一帧就存在；theme.js 确认生效后
+   display: none 把它撤掉，窗口的透明才透得出来。中间没有任何一帧的错误背景。 */
+html {
+    background: transparent;
+    color-scheme: dark light;
 }
 
 body {
@@ -28,6 +27,16 @@ body {
     overflow: hidden;
     background: transparent;
 }
+
+.backdrop-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--backdrop-fallback);
+    pointer-events: none;
+}
+
+html.backdrop-ok .backdrop-fallback { display: none; }
 
 /* ── 布局 ── */
 .app {

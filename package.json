@@ -18,11 +18,11 @@
   },
   "files": [
     "src",
-    "rust",
     "docs",
     "README.md",
     "LICENSE"
   ],
+  "//files": "刻意不含 rust：Rust 侧是通过 Cargo 的 path 依赖从本目录消费的，不走 npm；而 rust/target 有 700MB 以上，一旦被打包进来会变成灾难。",
   "peerDependencies": {
     "vite": ">=5"
   },

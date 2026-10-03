@@ -80,8 +80,11 @@ export function watchColorScheme(onChange) {
     const handler = async () => {
         const tint = readBackdropTint();
         const r = await applyBackdrop(tint, chosenBackend);
-        document.documentElement.classList.toggle('backdrop-ok', !!r.applied);
-        log(`系统配色已切换，原生背景重设：${r.applied ? r.backend : '兜底'}`);
+        // 这里必须一起更新 active：否则 isBackdropActive() 会一直返回
+        // 首次探测时的旧值，而界面上的类名已经是新的了，两者对不上。
+        active = !!r.applied;
+        document.documentElement.classList.toggle('backdrop-ok', active);
+        log(`系统配色已切换，原生背景重设：${active ? r.backend : '兜底'}`);
         if (typeof onChange === 'function') onChange(r);
     };
     mq.addEventListener('change', handler);
@@ -92,6 +95,7 @@ export function watchColorScheme(onChange) {
 export async function refreshBackdrop(backend = chosenBackend) {
     chosenBackend = backend;
     const r = await applyBackdrop(readBackdropTint(), backend);
-    document.documentElement.classList.toggle('backdrop-ok', !!r.applied);
+    active = !!r.applied;
+    document.documentElement.classList.toggle('backdrop-ok', active);
     return r;
 }

@@ -64,8 +64,10 @@ log(`环境：非 Tauri，窗口背景走不透明兜底（这是预期行为）
 shell.setBadge('contract', 2);
 
 // 方便截图与分享：?blur=1 直接进"玻璃效果"状态
+// 这里手动加的类名，正是 theme.js 在探测到原生模糊生效后加的同一个，
+// 所以预览里看到的就是真实应用里的行为。
 const params = new URLSearchParams(location.search);
 if (params.get('blur') === '1') {
-    document.documentElement.classList.add('demo-blur');
+    document.documentElement.classList.add('backdrop-ok', 'demo-blur');
     log('已按 URL 参数切到玻璃效果预览');
 }

@@ -55,6 +55,7 @@ cp -r Keypad-Tool Keypad-Tool.bak
 | 项 | 旧 | 新 |
 |---|---|---|
 | `html` / `body` 背景 | 内联 `style="background:transparent!important"` | 删掉，交给 `shell.css` 与 `theme.js` |
+| `<div class="backdrop-fallback">` | 没有 | **必须加**（模板自带）。少它 = 无模糊平台上文字糊在桌面上 |
 | `<link rel="stylesheet">` | 指向本地 `styles.css` | 删掉，改在 `main.js` 里 import 套件样式 |
 | 导航按钮 | 手写在 HTML 里 | 删掉，`createShell` 生成 |
 | 侧栏标题 / 页脚 | 硬编码 | 保留，`createShell` 会用参数覆盖 |

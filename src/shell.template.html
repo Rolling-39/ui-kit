@@ -14,6 +14,11 @@
     <title>__APP_NAME__</title>
 </head>
 <body>
+    <!-- 兜底底色层。原生模糊生效后由 theme.js 撤掉（html.backdrop-ok .backdrop-fallback
+         → display:none）。删掉它会在没有原生模糊的平台上变成"完全透明 + 0.15 表面"，
+         文字直接糊在桌面上。createShell 也会在缺失时自动补一层，但写在这里能保证首帧就有。 -->
+    <div class="backdrop-fallback" aria-hidden="true"></div>
+
     <div class="app">
         <!-- decorations: false 之后，拖拽与双击最大化靠 data-tauri-drag-region -->
         <header class="titlebar" data-tauri-drag-region>

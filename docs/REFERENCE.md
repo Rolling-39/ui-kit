@@ -57,6 +57,7 @@ CSS 变量、CSS 类、JS 模块、Rust 命令的速查。想先跑起来看 [US
 | `--on-surface` | `#191C1C` | `#E0E3E1` |
 | `--on-surface-variant` | `#3F4946` | `#BEC9C6` |
 | `--outline` | `rgba(111, 121, 118, 0.3)` | `rgba(137, 147, 144, 0.35)` |
+| `--select-bg` / `--select-fg` | `#FAFDFB` / `#191C1C` | `#191C1C` / `#E0E3E1` |
 
 不透明度改小 = 更透（原生模糊更明显），改大 = 更实（文字更清楚）。
 没有原生模糊时要靠兜底底色保证可读性，别把表面做得太透。
@@ -96,7 +97,8 @@ CSS 变量、CSS 类、JS 模块、Rust 命令的速查。想先跑起来看 [US
 | `.nav-item` / `.nav-icon` / `.nav-badge` | 导航项 / 图标位 / 角标。`createShell` 自动生成，不要手写 |
 | `.content` | 内容区，自带装饰性光斑（给原生模糊当模糊源） |
 | `.panel` / `.panel.active` | 面板容器；只有 `.active` 可见 |
-| `html.backdrop-ok` | 由 `theme.js` 在确认原生模糊生效后添加；加了这个类表面才透明 |
+| `.backdrop-fallback` | 兜底底色层，`<body>` 的第一个子元素。原生模糊生效后被 `html.backdrop-ok` 撤掉 |
+| `html.backdrop-ok` | 由 `theme.js` 在确认原生模糊生效后添加；加了这个类才撤掉兜底底、玻璃才透出桌面 |
 
 ### 卡片与标题
 
@@ -299,7 +301,7 @@ snackWarn('有 3 项被跳过');     // 橙
 | `.label` / `.label-primary` / `.label-strong` | 12px 次要文字 / 品牌色 / 加粗 |
 | `.hint` | 12px 说明文字，行高 1.7 |
 | `.mono` | 等宽字体 |
-| `.ok-text` / `.err-text` / `.warn-text` | 语义文字色 |
+| `.ok-text` / `.err-text` / `.warn-text` / `.info-text` | 语义文字色 |
 | `.status-line` | 两端对齐的状态行（左边说明、右边耗时） |
 
 ## 三、JS 模块
@@ -458,7 +460,7 @@ pub struct BackdropReport {
 | 函数 | 说明 |
 |---|---|
 | `boot_log(app_name, msg, truncate)` | 写 `%TEMP%\<app_name>-boot.log`。不依赖 `AppHandle`，可以在 `Builder` 之前调。`truncate = true` 用于启动时清空 |
-| `spawn_ready_probe(app_handle, webview_label, delay_ms)` | 延迟后探测页面是否加载，结果写 `frontend.log` 与 boot log |
+| `spawn_ready_probe(app_handle, app_name, webview_label, delay_ms)` | 延迟后探测页面是否加载，结果写 `frontend.log` 与 boot log。`app_name` 要与 `boot_log` 用的名字一致 |
 | `append_frontend_log(app, text)` | 追加一行到前端日志 |
 | `frontend_log_path_of(app)` | 取前端日志路径 |
 | `HAS_NATIVE_BACKDROP` | 编译期常量，本平台是否支持原生模糊 |

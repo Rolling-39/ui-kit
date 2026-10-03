@@ -90,8 +90,9 @@
 .textarea::placeholder { color: var(--on-surface-variant); opacity: 0.5; }
 
 .select { cursor: pointer; font-family: var(--font); }
-/* 下拉展开面板由系统绘制，不跟随 CSS 变量，必须显式给深色底 */
-.select option { background: #191C1C; color: #E0E3E1; }
+/* 展开面板由系统绘制，不继承 CSS 变量。--select-bg/fg 是单独给它的令牌，
+   随亮暗色各给一份；早先这里写死深色，浅色模式下会弹出深色面板。 */
+.select option { background: var(--select-bg); color: var(--select-fg); }
 
 .range { width: 100%; accent-color: var(--primary); }
 .input-narrow { width: 90px; }
@@ -150,6 +151,7 @@
 .ok-text { color: var(--success); }
 .err-text { color: var(--danger); }
 .warn-text { color: var(--warn); }
+.info-text { color: var(--info); }
 
 /* ── 字段组 ── */
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -348,7 +350,7 @@
     z-index: 100;
     animation: snackIn 0.25s ease;
     max-width: 70vw;
-    box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.4);
+    box-shadow: var(--shadow-lg);
 }
 .snackbar.err { background: var(--danger); color: #fff; }
 .snackbar.warn { background: var(--warn); color: #fff; }

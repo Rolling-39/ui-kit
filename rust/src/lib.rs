@@ -102,10 +102,19 @@ pub fn append_frontend_log(app: &tauri::AppHandle, text: &str) -> Result<(), Str
 /// 启动后探活：等一段时间再探测页面是否真的加载了。
 /// 界面没起来时，这段日志能直接区分「WebView 没加载到页面」和「前端脚本报错」。
 ///
+/// `app_name` 决定 boot 日志的文件名（`%TEMP%\<app_name>-boot.log`），
+/// 要和 `main()` 里 `boot_log` 用的名字一致，否则两处日志会分到不同文件。
+///
 /// 探测用的钩子是 ui.js 暴露的 window.__uiKitReport，改名要同步改前端。
-pub fn spawn_ready_probe(app: &tauri::AppHandle, webview_label: &str, delay_ms: u64) {
+pub fn spawn_ready_probe(
+    app: &tauri::AppHandle,
+    app_name: &str,
+    webview_label: &str,
+    delay_ms: u64,
+) {
     let handle = app.clone();
     let label = webview_label.to_string();
+    let name = app_name.to_string();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         let w = match handle.get_webview_window(&label) {
@@ -122,6 +131,6 @@ pub fn spawn_ready_probe(app: &tauri::AppHandle, webview_label: &str, delay_ms: 
             .unwrap_or("eval 失败");
         let line = format!("[rust] 窗口 url = {url}，页面探测 = {probe}");
         let _ = append_frontend_log(&handle, &line);
-        boot_log("ui-kit", &line, false);
+        boot_log(&name, &line, false);
     });
 }

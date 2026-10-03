@@ -31,15 +31,26 @@ export async function createShell(options) {
         onReady = null,
     } = options || {};
 
+    // 1) 前端异常落盘。必须最先装：骨架不对时抛出的错、之后任何白屏，
+    //    桌面端都只能靠这份日志定位（没有控制台）。
+    installErrorReporter();
+
     if (!Object.keys(panels).length) throw new Error('createShell 需要至少一个面板');
 
-    // 1) 骨架检查：宁可当场抛错，也不要渲染出一个空壳让人以为 UI 坏了
+    // 2) 骨架检查：宁可当场抛错，也不要渲染出一个空壳让人以为 UI 坏了
     const nav = $('sidebarNav');
     const content = $('content');
     if (!nav || !content || !$('tbMin')) throw new Error(TEMPLATE_HINT);
 
-    // 2) 前端异常落盘（必须在其他初始化之前，才能抓到后面所有错误）
-    installErrorReporter();
+    // 兜底底色层。模板里已经写了，写在这里是为了防"模板被改过"的情况：
+    // 缺了它会变成完全透明的窗口 + 0.15 不透明的表面，文字糊在桌面上。
+    if (!document.querySelector('.backdrop-fallback')) {
+        document.body.insertBefore(
+            el('div', { class: 'backdrop-fallback', 'aria-hidden': 'true' }),
+            document.body.firstChild,
+        );
+        log('未找到 .backdrop-fallback，已自动补一层。建议写进 index.html 以保证首帧就有。');
+    }
 
     // 3) 标题栏
     $('tbMin').addEventListener('click', minimizeWindow);
@@ -94,11 +105,19 @@ export async function createShell(options) {
         content.appendChild(root);
 
         nav.querySelectorAll('.nav-item').forEach((b) => {
-            b.classList.toggle('active', b.dataset.panel === name);
+            const on = b.dataset.panel === name;
+            b.classList.toggle('active', on);
+            if (on) b.setAttribute('aria-current', 'page');
+            else b.removeAttribute('aria-current');
         });
         if (titlebarTitleEl) titlebarTitleEl.textContent = `${appName} - ${panels[name].title}`;
         document.title = `${appName} - ${panels[name].title}`;
-        if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+        // 用 replaceState 而不是直接改 location.hash：后者会触发 hashchange，
+        // 又被下面的监听接回来，形成回环。file:// 与部分沙箱环境里
+        // replaceState 会抛错，失败就忽略（hash 只是个调试入口）。
+        try {
+            if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+        } catch (_) { /* 忽略 */ }
 
         try {
             const p = panels[name];
@@ -118,7 +137,7 @@ export async function createShell(options) {
     nav.addEventListener('click', (e) => {
         const btn = e.target.closest('.nav-item');
         if (!btn || !btn.dataset.panel) return;
-        showPanel(btn.dataset.panel);
+        showPanel(btn.dataset.panel).catch((err) => log('切换面板失败：' + err));
     });
 
     window.addEventListener('hashchange', () => {

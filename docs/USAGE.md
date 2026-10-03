@@ -92,10 +92,13 @@ export default defineConfig({
 
 导航按钮**不要手写**，`createShell` 会按面板清单生成。
 
-注意两点：
+注意三点：
 
 - 不要在 `<html>` / `<body>` 上写内联 `style="background:transparent"`。背景策略由
   `shell.css` + `theme.js` 统一管，写死了就没法退回兜底底色。
+- **保留 `<body>` 的第一个子元素 `<div class="backdrop-fallback" aria-hidden="true"></div>`**。
+  它是原生模糊不可用时的兜底底色，删了会变成完全透明的窗口 + 0.15 不透明表面，文字糊在桌面上。
+  `createShell` 在缺失时会自动补一层并在日志里提示，但那样首帧没有底色，仍可能闪一下。
 - 保留 `id="sidebarNav"`、`id="content"`、`id="tbMin"`/`tbMax`/`tbClose`/`tbTitle`
   以及 `class="app"`、`class="titlebar"`、`data-tauri-drag-region` —— `createShell` 依赖这些钩子，
   缺了会直接抛错（错误信息会指向本模板）。
@@ -159,8 +162,9 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // 启动 2.5 秒后探测页面是否真的加载了，结果写进 frontend.log
-            tauri_ui_kit::spawn_ready_probe(app.handle(), "main", 2500);
+            // 启动 2.5 秒后探测页面是否真的加载了，结果写进 frontend.log。
+            // 第二个参数要和上面 boot_log 用的名字一致，否则两处日志分到不同文件。
+            tauri_ui_kit::spawn_ready_probe(app.handle(), "my-tool", "main", 2500);
             tauri_ui_kit::boot_log("my-tool", "setup 完成", false);
             Ok(())
         })
@@ -575,7 +579,9 @@ indexmap 被构建期那侧（tauri → tauri-build → schemars）和普通依�
 1. 日志面板里那句话是 `原生窗口背景已生效：xxx` 还是 `原生窗口背景不可用，已切换为不透明兜底：xxx`。
    后者的 `detail` 会说明原因（平台不支持 / API 报错）。
 2. `applied: false` 时 `<html>` **不应该**有 `backdrop-ok` 类。在 DevTools 里确认一下。
-3. 如果你照抄了某个旧项目的内联 `style="background:transparent!important"`，删掉它 ——
+3. 确认 `<body>` 第一个子元素是 `<div class="backdrop-fallback">`。
+   没有它就没有兜底底色，窗口会变成"完全透明 + 0.15 不透明表面"，正是这个症状。
+4. 如果你照抄了某个旧项目的内联 `style="background:transparent!important"`，删掉它 ——
    它会把兜底底色一起干掉。
 
 ### 原生模糊在有的机器上没效果
@@ -617,7 +623,7 @@ proxy = ""
 
 - [ ] `npm install ../ui-kit` 成功，`node_modules/@rolling/ui-kit/src` 存在
 - [ ] `vite.config.js` 里有 `server.fs.allow: ['..']` 与 `resolve.preserveSymlinks: false`
-- [ ] `src/index.html` 来自 `shell.template.html`，且**没有**内联 `background:transparent`
+- [ ] `src/index.html` 来自 `shell.template.html`，`<body>` 第一个子元素是 `.backdrop-fallback`，且**没有**内联 `background:transparent`
 - [ ] `src/index.html` 里 `sidebarNav` / `content` / `tbMin` / `tbMax` / `tbClose` / `tbTitle` 六个 id 齐全
 - [ ] `main.js` 第一行 import 了 `@rolling/ui-kit/index.css`，且在项目自己的样式**之前**
 - [ ] `Cargo.toml` 里有 `tauri-ui-kit`（path 正确）和两处 `indexmap`

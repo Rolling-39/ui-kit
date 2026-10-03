@@ -10,14 +10,17 @@
     <link rel="stylesheet" href="../src/index.css" />
     <style>
         /* 仅 demo 用：造一个假桌面，用来演示「有原生模糊」和「走兜底」两种状态的区别。
-           真实应用里这两件事由 theme.js + 原生层自动决定，不需要这些规则。 */
+           机制与真实应用完全一致：兜底底色由 .backdrop-fallback 提供，
+           模拟原生模糊生效时给 <html> 加 .backdrop-ok 把这层撤掉。
+           真实应用里这个类名由 theme.js 探测原生层后自动加。 */
         .demo-desktop { display: none; position: fixed; inset: 0; z-index: -1; }
         .demo-desktop i { position: absolute; display: block; border-radius: 50%; filter: blur(2px); }
-        html.demo-blur { background: transparent !important; }
         html.demo-blur .demo-desktop { display: block; }
     </style>
 </head>
 <body>
+    <div class="backdrop-fallback" aria-hidden="true"></div>
+
     <div class="demo-desktop" aria-hidden="true">
         <i style="width:420px;height:420px;left:-80px;top:-60px;background:#2f6f68"></i>
         <i style="width:300px;height:300px;right:60px;top:120px;background:#7a4f8a"></i>

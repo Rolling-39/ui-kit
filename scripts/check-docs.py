@@ -128,9 +128,40 @@ def check_claims():
     return problems
 
 
+def dead_code():
+    """报出「定义了但从未被引用」的令牌与类。
+
+    对库来说这两类不一定是错误（消费者可能用），所以只提示、不判失败。
+    但它们最容易在改样式时变成垃圾，所以值得每次都看一眼。
+    出现在文档里的类算「有意对外提供」，不提示。
+    """
+    css_files = ['tokens.css', 'shell.css', 'glass.css']
+    css = '\n'.join(read('src/' + n) for n in css_files)
+    js = '\n'.join(read(os.path.relpath(p, ROOT))
+                   for p in glob.glob(os.path.join(ROOT, 'src', '*.js')))
+    docs = '\n'.join(read(f) for f in MD_FILES)
+
+    tokens = sorted(set(re.findall(r'^\s*(--[\w-]+):', read('src/tokens.css'), re.M)))
+    # 令牌可能被 CSS 的 var() 用到，也可能被 JS 用 getComputedStyle 读走
+    unused_tokens = [t for t in tokens
+                     if f'var({t}' not in css and f'var({t},' not in css and t not in js]
+
+    used_src = js + '\n'.join(
+        read(os.path.relpath(p, ROOT)) for p in
+        glob.glob(os.path.join(ROOT, 'demo', '**', '*.*'), recursive=True)
+        # demo 里有截图，只读文本文件
+        if os.path.splitext(p)[1] in ('.js', '.html', '.css'))
+    used_src += read('src/shell.template.html')
+    classes = sorted(set(re.findall(r'^\s*\.([a-zA-Z][\w-]*)', css, re.M)))
+    never_used = [c for c in classes if c not in used_src and f'.{c}' not in docs]
+
+    return unused_tokens, never_used
+
+
 def main():
     link_problems, dupes, total = check_links()
     claim_problems = check_claims()
+    unused_tokens, never_used = dead_code()
 
     print(f'检查 {len(MD_FILES)} 个文档，{total} 个内部链接')
     for f in MD_FILES:
@@ -146,10 +177,19 @@ def main():
         print(f'\n发现 {len(all_problems)} 个问题：')
         for p in all_problems:
             print('  ✗ ' + p)
-        return 1
 
-    print('\n通过：链接与锚点全部可解析，文档声称的 API / 变量 / 类均存在')
-    return 0
+    if unused_tokens or never_used:
+        # 只提示不失败：库允许存在当前项目用不到的令牌与类
+        if unused_tokens:
+            print('\n提示：定义了但没有任何地方引用的 CSS 变量（确认是残留还是预留给使用者）')
+            print('  ' + ', '.join(unused_tokens))
+        if never_used:
+            print('\n提示：定义了但代码与文档里都没出现的 CSS 类（同上）')
+            print('  ' + ', '.join(never_used))
+
+    if not all_problems:
+        print('\n通过：链接与锚点全部可解析，文档声称的 API / 变量 / 类均存在')
+    return 1 if all_problems else 0
 
 
 if __name__ == '__main__':

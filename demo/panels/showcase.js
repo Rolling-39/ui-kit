@@ -32,7 +32,8 @@ export function mount(root) {
             class: 'toggle-btn',
             text: '看玻璃效果',
             onClick(e) {
-                document.documentElement.classList.add('demo-blur');
+                // backdrop-ok 是真实机制：theme.js 探测到原生模糊生效后加的就是它
+                document.documentElement.classList.add('backdrop-ok', 'demo-blur');
                 [...e.target.parentNode.children].forEach((b) => b.classList.remove('active'));
                 e.target.classList.add('active');
                 blurState.className = 'badge ok';
@@ -44,7 +45,7 @@ export function mount(root) {
             class: 'toggle-btn active',
             text: '看兜底效果',
             onClick(e) {
-                document.documentElement.classList.remove('demo-blur');
+                document.documentElement.classList.remove('backdrop-ok', 'demo-blur');
                 [...e.target.parentNode.children].forEach((b) => b.classList.remove('active'));
                 e.target.classList.add('active');
                 blurState.className = 'badge warn';
@@ -168,6 +169,45 @@ export function mount(root) {
             el('div', { class: 'kv' }, [el('span', { class: 'k', text: '输入' }), el('span', { class: 'v', text: 'a.txt' })]),
             el('div', { class: 'kv' }, [el('span', { class: 'k', text: '输出' }), el('span', { class: 'v', text: 'a.txt.txt' })]),
             el('div', { class: 'kv' }, [el('span', { class: 'k', text: '计时器 text()' }), el('span', { class: 'v', text: t.text() })]),
+        ])),
+
+        section('语义文字与状态行', el('div', { style: 'display:flex;flex-direction:column;gap:12px' }, [
+            el('div', { class: 'btn-row' }, [
+                el('span', { class: 'label label-primary', text: 'label-primary 品牌色' }),
+                el('span', { class: 'label label-strong', text: 'label-strong 加粗' }),
+                el('span', { class: 'label', text: 'label 常规次要' }),
+            ]),
+            el('div', { class: 'btn-row' }, [
+                el('span', { class: 'ok-text', text: 'ok-text' }),
+                el('span', { class: 'warn-text', text: 'warn-text' }),
+                el('span', { class: 'err-text', text: 'err-text' }),
+                el('span', { class: 'info-text', text: 'info-text' }),
+            ]),
+            el('div', { class: 'status-line' }, [
+                el('span', { text: '上次操作' }),
+                el('span', { class: 'mono', text: t.text() }),
+            ]),
+            el('div', { class: 'field' }, [
+                el('span', { class: 'label', text: '.input-narrow（宽度收到 90px）' }),
+                el('div', { class: 'btn-row' }, [
+                    el('input', { class: 'input input-narrow', value: '90' }),
+                    el('input', { class: 'input input-narrow', placeholder: '60' }),
+                ]),
+            ]),
+            el('div', { class: 'field' }, [
+                el('span', { class: 'label', text: '.result-image（受限于 340px 高，宽度撑满）' }),
+                el('img', {
+                    class: 'result-image',
+                    alt: '结果图预览示例',
+                    src: 'data:image/svg+xml;utf8,' + encodeURIComponent(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">'
+                        + '<rect width="320" height="180" fill="#1f3b38"/>'
+                        + '<circle cx="88" cy="90" r="46" fill="#39C5BB"/>'
+                        + '<rect x="150" y="50" width="120" height="80" rx="10" fill="#7a4f8a"/>'
+                        + '</svg>',
+                    ),
+                }),
+            ]),
         ])),
 
         section('进度与结果', el('div', { style: 'display:flex;flex-direction:column;gap:14px' }, [
