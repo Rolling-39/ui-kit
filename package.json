@@ -18,7 +18,10 @@
   },
   "files": [
     "src",
-    "rust"
+    "rust",
+    "docs",
+    "README.md",
+    "LICENSE"
   ],
   "peerDependencies": {
     "vite": ">=5"
