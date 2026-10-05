@@ -68,8 +68,13 @@ export async function createShell(options) {
     clear(nav);
     for (const [key, p] of Object.entries(panels)) {
         if (p.hidden) continue;
+        // icon 支持两种形态：字符串（原有行为），或 SVG 元素（如 lucide 的
+        // createElement 产物——单色、stroke=currentColor，颜色随主题联动）
+        const iconWrap = el('span', { class: 'nav-icon' });
+        if (p.icon instanceof Element) iconWrap.appendChild(p.icon);
+        else iconWrap.textContent = p.icon || '';
         const btn = el('button', { class: 'nav-item', dataset: { panel: key } }, [
-            el('span', { class: 'nav-icon', text: p.icon || '' }),
+            iconWrap,
             p.title,
         ]);
         if (p.badge !== undefined && p.badge !== null) {
@@ -92,7 +97,8 @@ export async function createShell(options) {
     }
 
     async function showPanel(name) {
-        if (!panels[name] || panels[name].hidden) return;
+        // hidden 只表示"不进导航"，显式 showPanel 仍可打开（与 USAGE 文档一致）
+        if (!panels[name]) return;
         const token = ++switchToken;
 
         await destroyCurrent();

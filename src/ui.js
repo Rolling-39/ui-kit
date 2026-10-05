@@ -69,8 +69,9 @@ export function el(tag, attrs = {}, children = []) {
         else if (k === 'text') e.textContent = v;
         else if (k === 'html') e.innerHTML = v;
         else if (k === 'dataset') Object.assign(e.dataset, v);
-        else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+        else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2).toLowerCase(), v);
         else if (v === true) e.setAttribute(k, '');
+        else if (v === false) e.removeAttribute(k); // 布尔属性（disabled/checked…）false 必须移除，setAttribute('disabled','false') 仍是禁用
         else e.setAttribute(k, v);
     }
     for (const c of [].concat(children)) {

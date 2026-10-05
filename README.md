@@ -6,6 +6,18 @@ Rolling 的 Tauri 桌面应用界面套件。把原本在多个项目里各抄�
 同一个视觉体系、三份不同的实现，修好的改动无法回流 —— S2PNG 里修好的边框可见度，Base64 里并没有。
 本仓库是这套 UI 的唯一真源。
 
+## 效果图
+
+原生 Acrylic 模糊生效时（背后是 demo 自造的假桌面）：
+
+![原生模糊生效](demo/preview-blur.png)
+
+无原生模糊的平台自动切换不透明兜底底色（同一套 CSS，保证可读性）：
+
+![兜底底色](demo/preview-fallback.png)
+
+已用于：[ProjectHub](https://github.com/Rolling-39/ProjectHub)（开源）· Base64 Tool Desktop · S2PNG Tool Desktop · Keypad Tool
+
 | | |
 |---|---|
 | 前端 | 原生 ES 模块 + 纯 CSS，无框架、无预处理器，Vite 直接吃 |

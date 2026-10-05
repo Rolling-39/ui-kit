@@ -371,7 +371,7 @@ export function mount(root) {
 | 字段 | 说明 |
 |---|---|
 | `title` | 必填，导航文字，也会拼进窗口标题 `应用名 - 面板名` |
-| `icon` | 可选，导航左侧图标位（用字符，不是图片） |
+| `icon` | 可选，导航左侧图标位。字符，或 SVG 元素（如 lucide `createElement` 的产物，单色、随 `currentColor` 联动） |
 | `badge` | 可选，导航右侧角标初始值，之后用 `shell.setBadge(key, n)` 改 |
 | `hidden` | 可选，为 `true` 时不出现在导航里，但仍然可以被 `showPanel` 打开 |
 | `load` | 懒加载：`() => import('./panels/xxx.js')`，第一次切到才下载 |
