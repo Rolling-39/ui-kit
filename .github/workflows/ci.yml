@@ -6,6 +6,10 @@ name: CI
 #   文档自检、exports 自检 —— 纯 Python / Node 标准能力，无外部依赖
 #   cargo check            —— rust/Cargo.lock 已入库，版本解析是确定的；但首次要联网拉 crate
 # 所以 cargo 那步失败时，先看是不是 runner 的网络问题，再看代码。
+#
+# 改这个文件时注意：YAML 里值中的 ": "（冒号加空格）会被当成映射分隔符，
+# 整个工作流会解析失败、运行耗时显示 0s。步骤名里带冒号就加引号。
+# 提交前至少确认它能被 YAML 解析器读出来。
 
 on:
   push:
@@ -59,7 +63,7 @@ jobs:
       - name: package.json 的 exports 是否都指向真实存在的文件
         run: node scripts/check-exports.mjs
 
-      - name: 装成 file: 依赖后仍能解析
+      - name: 装成 file 依赖后仍能解析
         shell: pwsh
         run: |
           $tmp = Join-Path $env:RUNNER_TEMP 'consumer'
