@@ -2,8 +2,13 @@
   "name": "@rolling/ui-kit",
   "version": "0.1.0",
   "private": true,
+  "//private": "故意保持 private：本套件按设计走本地路径依赖（package.json 的 file:../ui-kit、Cargo.toml 的 path），不发布到 npm。下面的 exports / files 是给 file: 依赖解析用的，不是发布元数据。",
   "description": "Rolling 的 Tauri 桌面应用 UI 套件：毛玻璃主题 + 窗口骨架 + 面板生命周期 + 原生背景与日志桥接",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rolling-39/ui-kit.git"
+  },
   "type": "module",
   "exports": {
     "./index.css": "./src/index.css",

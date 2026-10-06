@@ -34,6 +34,13 @@ pub struct BackdropReport {
     pub os_build: Option<u32>,
     /// 失败原因或补充说明
     pub detail: String,
+    /// 原生背景的明暗是否会按传入的 `dark` 走。
+    ///
+    /// false 表示这条后端我们控制不了明暗（Win11 的 DWM 分支忽略 tint、
+    /// macOS 的 vibrancy 跟随系统外观）。此时若应用手动锁定了亮/暗，
+    /// 前端要自己补一层对应该档位的底色，否则会出现"CSS 切了配色、
+    /// 窗口背后的原生背景没切"，文字对比度掉到读不了。
+    pub dark_honored: bool,
 }
 
 /// 当前系统构建号。Windows 用 windows-version，其他平台返回 None。
@@ -55,6 +62,9 @@ pub(crate) fn fail(detail: impl Into<String>) -> BackdropReport {
         backend: "none".into(),
         os_build: os_build(),
         detail: detail.into(),
+        // 没应用成功就谈不上"明暗被采纳"：前端会走不透明兜底底色，
+        // 那层底色本身是按当前档位来的，明暗仍然正确。
+        dark_honored: false,
     }
 }
 

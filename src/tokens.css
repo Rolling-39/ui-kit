@@ -8,49 +8,105 @@
    颜色一律以 "R, G, B" 三元组定义，再由 rgb() 派生。
    这样 rgba() 这类需要 alpha 的场合可以直接写
    rgba(var(--primary-rgb), 0.15)，不必重复抄一遍色值。
+
+   ── 亮暗两套值怎么组织（改之前先读这段）──
+   亮暗取值不同的量一律以 --x-light / --x-dark 成对给出，再在
+   下面映射成"当前档位"的 --x。两条路径共用同一份值：
+
+     跟随系统  → :root 取浅色 + @media (prefers-color-scheme: dark) 取深色
+     手动锁定  → html[data-theme="light"|"dark"] 覆盖
+
+   为什么不把深色值直接写两遍：那样套件以后调整某个值，锁定模式
+   的消费方会静默拿不到。成对变量让"值只写一遍"。
    ───────────────────────────────────────────────────────────── */
 
 :root {
-    /* 品牌色 */
-    --primary-rgb: 57, 197, 187;
-    --primary: rgb(var(--primary-rgb));
+    /* ══ 亮暗成对：品牌与语义 ══ */
+    --primary-rgb-light: 57, 197, 187;
+    --primary-rgb-dark: 74, 218, 208;
+    /* 品牌色上的文字：亮暗都取深色（品牌色本身是亮的） */
     --on-primary: #003734;
-    --primary-container: rgba(var(--primary-rgb), 0.15);
 
-    /* 语义色 */
+    /* 语义色亮暗一致，不需要成对 */
     --success-rgb: 29, 158, 117;
     --danger-rgb: 226, 75, 74;
     --warn-rgb: 186, 117, 23;
     --info-rgb: 55, 138, 221;
+
+    /* ══ 亮暗成对：表面 / 文字 / 描边 ══ */
+    --surface-light: rgba(250, 253, 251, 0.18);
+    --surface-dark: rgba(25, 28, 28, 0.52);
+    --surface-glass-light: rgba(250, 253, 251, 0.15);
+    --surface-glass-dark: rgba(25, 28, 28, 0.50);
+    --surface-glass-strong-light: rgba(250, 253, 251, 0.30);
+    --surface-glass-strong-dark: rgba(25, 28, 28, 0.68);
+    --surface-variant-light: rgba(218, 229, 226, 0.12);
+    --surface-variant-dark: rgba(63, 73, 70, 0.35);
+
+    --on-surface-light: #191C1C;
+    --on-surface-dark: #E0E3E1;
+    --on-surface-variant-light: #3F4946;
+    --on-surface-variant-dark: #BEC9C6;
+    --outline-light: rgba(111, 121, 118, 0.3);
+    --outline-dark: rgba(137, 147, 144, 0.35);
+
+    /* 下拉框展开面板由系统绘制，不跟随 CSS 变量，必须显式给底色，
+       否则浅色模式下会弹出深色面板（或反过来）。 */
+    --select-bg-light: #FAFDFB;
+    --select-bg-dark: #191C1C;
+    --select-fg-light: #191C1C;
+    --select-fg-dark: #E0E3E1;
+
+    /* ══ 亮暗成对：原生窗口背景 ══
+       Windows Acrylic / macOS Vibrancy 的着色，格式 "r, g, b, a"，a 为 0-255。
+       浅色与深色各给一份：原先三个项目在两个模式下都用同一个深色 tint，
+       结果是浅色模式下背景被压暗、玻璃发灰。 */
+    --backdrop-tint-light: 245, 250, 248, 96;
+    --backdrop-tint-dark: 18, 18, 18, 64;
+    /* 原生模糊不可用时的兜底底色。必须不透明：
+       否则窗口是透明的、内容又只有 0.15 不透明度，文字会直接糊在桌面上。 */
+    --backdrop-fallback-light: linear-gradient(135deg, #e8f5f3 0%, #d4efe9 30%, #c8e8e0 60%, #e0f0ec 100%);
+    --backdrop-fallback-dark: linear-gradient(135deg, #0f1a18 0%, #122420 30%, #0d1f1a 60%, #101c19 100%);
+
+    /* ══ 亮暗成对：阴影 ══ */
+    --shadow-light: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --shadow-dark: 0 4px 24px rgba(0, 0, 0, 0.20);
+    --shadow-lg-light: 0 8px 40px rgba(0, 0, 0, 0.10);
+    --shadow-lg-dark: 0 8px 40px rgba(0, 0, 0, 0.30);
+
+    /* ══ 当前档位：默认跟随系统（这里取浅色）══ */
+    --primary-rgb: var(--primary-rgb-light);
+    --surface: var(--surface-light);
+    --surface-glass: var(--surface-glass-light);
+    --surface-glass-strong: var(--surface-glass-strong-light);
+    --surface-variant: var(--surface-variant-light);
+    --on-surface: var(--on-surface-light);
+    --on-surface-variant: var(--on-surface-variant-light);
+    --outline: var(--outline-light);
+    --select-bg: var(--select-bg-light);
+    --select-fg: var(--select-fg-light);
+    --backdrop-tint: var(--backdrop-tint-light);
+    --backdrop-fallback: var(--backdrop-fallback-light);
+    --shadow: var(--shadow-light);
+    --shadow-lg: var(--shadow-lg-light);
+
+    /* ══ 派生量：引用"当前档位"，因此不需要成对 ══ */
+    --primary: rgb(var(--primary-rgb));
+    --primary-container: rgba(var(--primary-rgb), 0.15);
     --success: rgb(var(--success-rgb));
     --danger: rgb(var(--danger-rgb));
     --warn: rgb(var(--warn-rgb));
     --info: rgb(var(--info-rgb));
+    --shadow-primary: 0 2px 12px rgba(var(--primary-rgb), 0.30);
 
-    /* 表面 */
-    --surface: rgba(250, 253, 251, 0.18);
-    --surface-glass: rgba(250, 253, 251, 0.15);
-    --surface-glass-strong: rgba(250, 253, 251, 0.30);
-    --surface-variant: rgba(218, 229, 226, 0.12);
-
-    /* 文字与描边 */
-    --on-surface: #191C1C;
-    --on-surface-variant: #3F4946;
-    --outline: rgba(111, 121, 118, 0.3);
-
-    /* 下拉框展开面板由系统绘制，不跟随 CSS 变量，必须显式给底色，
-       否则浅色模式下会弹出深色面板（或反过来）。 */
-    --select-bg: #FAFDFB;
-    --select-fg: #191C1C;
-
-    /* ── 原生窗口背景 ── */
-    /* Windows Acrylic / macOS Vibrancy 的着色，格式 "r, g, b, a"，a 为 0-255。
-       浅色与深色各给一份：原先三个项目在两个模式下都用同一个深色 tint，
-       结果是浅色模式下背景被压暗、玻璃发灰。 */
-    --backdrop-tint: 245, 250, 248, 96;
-    /* 原生模糊不可用时的兜底底色。必须不透明：
-       否则窗口是透明的、内容又只有 0.15 不透明度，文字会直接糊在桌面上。 */
-    --backdrop-fallback: linear-gradient(135deg, #e8f5f3 0%, #d4efe9 30%, #c8e8e0 60%, #e0f0ec 100%);
+    /* ══ 代码块 ══
+       刻意亮暗一致。原因：highlight.js 的主题（github-dark）同时决定了
+       关键字/数字/字符串的token 配色，换一套 token 配色等于要同时加载
+       两份 hljs 样式表并按亮暗切换——那份复杂度换不来多少收益，而
+       只切背景不切 token 会在浅色底上出现低对比度颜色。
+       所以这里明确固定为深色代码块，而不是"忘了适配"。 */
+    --code-bg: #14181a;
+    --code-fg: #e0e3e1;
 
     /* 尺寸 */
     --radius: 14px;
@@ -62,39 +118,73 @@
     /* 字体 */
     --font: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
     --mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-
-    /* 阴影 */
-    --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.10);
-    --shadow-primary: 0 2px 12px rgba(var(--primary-rgb), 0.30);
 }
 
+/* ── 跟随系统 ── */
 @media (prefers-color-scheme: dark) {
     :root {
-        --primary-rgb: 74, 218, 208;
-        --on-primary: #003734;
-        --primary-container: rgba(var(--primary-rgb), 0.15);
-
-        --success-rgb: 29, 158, 117;
-        --danger-rgb: 226, 75, 74;
-        --warn-rgb: 186, 117, 23;
-
-        --surface: rgba(25, 28, 28, 0.52);
-        --surface-glass: rgba(25, 28, 28, 0.50);
-        --surface-glass-strong: rgba(25, 28, 28, 0.68);
-        --surface-variant: rgba(63, 73, 70, 0.35);
-
-        --on-surface: #E0E3E1;
-        --on-surface-variant: #BEC9C6;
-        --outline: rgba(137, 147, 144, 0.35);
-
-        --select-bg: #191C1C;
-        --select-fg: #E0E3E1;
-
-        --backdrop-tint: 18, 18, 18, 64;
-        --backdrop-fallback: linear-gradient(135deg, #0f1a18 0%, #122420 30%, #0d1f1a 60%, #101c19 100%);
-
-        --shadow: 0 4px 24px rgba(0, 0, 0, 0.20);
-        --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.30);
+        --primary-rgb: var(--primary-rgb-dark);
+        --surface: var(--surface-dark);
+        --surface-glass: var(--surface-glass-dark);
+        --surface-glass-strong: var(--surface-glass-strong-dark);
+        --surface-variant: var(--surface-variant-dark);
+        --on-surface: var(--on-surface-dark);
+        --on-surface-variant: var(--on-surface-variant-dark);
+        --outline: var(--outline-dark);
+        --select-bg: var(--select-bg-dark);
+        --select-fg: var(--select-fg-dark);
+        --backdrop-tint: var(--backdrop-tint-dark);
+        --backdrop-fallback: var(--backdrop-fallback-dark);
+        --shadow: var(--shadow-dark);
+        --shadow-lg: var(--shadow-lg-dark);
     }
+}
+
+/* ── 手动锁定 ──
+   优先级高于上面的 :root 与 @media 分支（html[type] 0,1,1 > :root 0,1,0），
+   所以能同时压过"跟随系统"的两个结果。
+
+   这里必须覆盖**全部**亮暗取值不同的量。只覆盖一部分会得到杂交态：
+   例如"系统暗 + 手动锁亮"下，表面仍是暗的、背景已经是亮的。
+
+   color-scheme 也必须跟着走。它不随 CSS 变量联动，而它才是浏览器
+   决定原生绘制控件（下拉展开面板内层、表单控件装饰、非自定义滚动条、
+   自动填充底色）用亮还是暗的那一档。少了这一行，锁定模式下玻璃表面
+   已经换了配色，控件装饰还停在系统那一档。 */
+html[data-theme="light"] {
+    color-scheme: light;
+
+    --primary-rgb: var(--primary-rgb-light);
+    --surface: var(--surface-light);
+    --surface-glass: var(--surface-glass-light);
+    --surface-glass-strong: var(--surface-glass-strong-light);
+    --surface-variant: var(--surface-variant-light);
+    --on-surface: var(--on-surface-light);
+    --on-surface-variant: var(--on-surface-variant-light);
+    --outline: var(--outline-light);
+    --select-bg: var(--select-bg-light);
+    --select-fg: var(--select-fg-light);
+    --backdrop-tint: var(--backdrop-tint-light);
+    --backdrop-fallback: var(--backdrop-fallback-light);
+    --shadow: var(--shadow-light);
+    --shadow-lg: var(--shadow-lg-light);
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    --primary-rgb: var(--primary-rgb-dark);
+    --surface: var(--surface-dark);
+    --surface-glass: var(--surface-glass-dark);
+    --surface-glass-strong: var(--surface-glass-strong-dark);
+    --surface-variant: var(--surface-variant-dark);
+    --on-surface: var(--on-surface-dark);
+    --on-surface-variant: var(--on-surface-variant-dark);
+    --outline: var(--outline-dark);
+    --select-bg: var(--select-bg-dark);
+    --select-fg: var(--select-fg-dark);
+    --backdrop-tint: var(--backdrop-tint-dark);
+    --backdrop-fallback: var(--backdrop-fallback-dark);
+    --shadow: var(--shadow-dark);
+    --shadow-lg: var(--shadow-lg-dark);
 }

@@ -82,20 +82,39 @@ export function frontendLogPath() {
 
 // ── 原生窗口背景 ──
 
+/** 当前系统是否偏好深色。用于把"跟随系统"档解析成具体值 */
+function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+
 /**
  * 应用原生窗口背景（Windows Acrylic / Mica、macOS Vibrancy）。
  * @param {[number,number,number,number]|null} tint r,g,b,a（a 为 0-255）。仅 Windows 10 生效。
  * @param {'acrylic'|'mica'|'auto'} [backend] 默认 acrylic，与现有项目外观一致
- * @returns {Promise<{applied:boolean, backend:string, os_build:number|null, detail:string}>}
+ * @param {boolean|null} [dark] 期望的原生背景明暗：true 深 / false 浅。
+ *   **不要传 null 表示"跟随系统"。** 原生层收到 None 时不是"跟随系统"，而是
+ *   "别动这个属性"，那个 DWM 属性会停在上一次被设过的值上 —— 于是
+ *   "锁浅色 → 切回跟随系统"会留下浅色的窗口底，配着已经变深的 CSS
+ *   （详见 theme.js 的 readBackdropDarkness）。这里对 null/undefined 做一次
+ *   兜底解析，保证发出去的永远是具体值。
+ * @returns {Promise<{applied:boolean, backend:string, os_build:number|null,
+ *   detail:string, dark_honored:boolean}>}
+ *   dark_honored = false 表示这条后端控制不了明暗，调用方要自己补底色。
  */
-export function applyBackdrop(tint, backend) {
+export function applyBackdrop(tint, backend, dark) {
     if (!isTauri) {
         return Promise.resolve({
-            applied: false, backend: 'browser', os_build: null, detail: '不在 Tauri 容器内',
+            applied: false, backend: 'browser', os_build: null,
+            detail: '不在 Tauri 容器内', dark_honored: false,
         });
     }
-    return invoke('ui_kit_apply_backdrop', { tint: tint || null, backend: backend || null })
+    return invoke('ui_kit_apply_backdrop', {
+        tint: tint || null,
+        backend: backend || null,
+        dark: typeof dark === 'boolean' ? dark : systemPrefersDark(),
+    })
         .catch((e) => ({
-            applied: false, backend: 'error', os_build: null, detail: String(e),
+            applied: false, backend: 'error', os_build: null,
+            detail: String(e), dark_honored: false,
         }));
 }

@@ -340,6 +340,23 @@ export function mount(root) {
 }
 ```
 
+**`mount` 可以是 async，而且"要先把数据取回来才能画"的面板就应该是 async。**
+shell 切换面板时会等 `mount()` 的 promise 落地才把新面板显示出来 —— 在那之前上一个面板
+一直留在屏幕上。所以 **promise 落地 = 首屏已经渲染完**，等价地说：先 `await` 首次取数再返回。
+
+```js
+export async function mount(root) {
+    root.append(skeleton);           // 骨架可以先挂（对用户不可见）
+    const data = await loadFirstScreen();   // 这段等待里，用户看到的还是上一个面板
+    render(root, data);
+    return { destroy() {}, refresh() {} };
+}
+```
+
+返回得太早（没 await 首次取数）的代价是：切换时会先闪一下"只有骨架、内容还没到"的画面
+—— 表头、工具栏都在，列表和卡片是空的。shell 最多等 150ms，超过就先显示骨架兜底，
+不会让界面一直停在上一个面板上。
+
 `mount` 可以是 `async`，`destroy` 也可以。
 
 **`destroy` 不是可选项。** 面板里起的系统级监听（比如 Keypad 那个 Raw Input 线程）、
@@ -398,6 +415,7 @@ export function mount(root) {
 | `defaultPanel` | 清单第一项 | 默认打开哪个 |
 | `backdropBackend` | `'acrylic'` | `'acrylic'` / `'mica'`（仅 Win11）/ `'auto'` |
 | `useBackdrop` | `true` | 置 `false` 强制用不透明兜底底色 |
+| `prefetchPanels` | `true` | 启动后空闲时预热其余面板模块（只 import，不挂载），切换面板时就不必再等一次动态 import。面板很多且各自很重时可以置 `false` |
 | `onReady` | `null` | `createShell` 完成后的回调，参数是 shell 对象 |
 
 ## 4. 常见场景
@@ -516,23 +534,33 @@ const call = (cmd, args) => (isTauri ? invoke(cmd, args) : mockInvoke(cmd, args)
 
 字号、圆角、字体、阴影同理，全部在这一节。改完不需要动 Rust。
 
-改完记得在原生侧也调一次 `refreshBackdrop()`，让 tint 重新读一遍（仅 Win10 有意义）。
+改完记得在原生侧也调一次 `refreshBackdrop()`：它会把 tint 与**当前档位的明暗**一起重新告诉原生层。
+tint 只在 Win10 有意义，但明暗那一路在任何平台都有意义 —— 应用里能手动切"跟随系统 / 亮 / 暗"的话，
+切完不调这一下，就会得到"CSS 已经换了配色、窗口背后的原生背景没换"。
+`theme.js` 的 `readBackdropDarkness()` 会自动从 CSS 的 `color-scheme` 读出该传什么，不用你手动算，
+而且"跟随系统"档它也会解析成系统当前的实际取值（不能留空，理由见 `docs/REFERENCE.md` 的
+`@rolling/ui-kit/theme` 一节）。
 
-### 4.5 状态卡片（侧栏）
+### 4.5 侧栏状态卡片
 
-`shell.template.html` 里侧栏底部预留了位置。要放设备状态/连接状态的卡片，
-在骨架里加一个容器，用 `.device-card` / `.device-line` / `.dot` 这几个类，
-然后在 `onReady` 里更新：
+`shell.template.html` 的侧栏底部只有页脚文字，**没有**预置状态卡片：设备/连接状态属于业务，
+套件只提供零件 —— `.dot` 那三种状态点，以及 `.card` / `.kv` 这类通用容器。
+
+自己往骨架的 `<aside class="sidebar">` 里加一个容器（容器与 id 都由你自己起名，套件不认识它们），
+在 `onReady` 里更新：
 
 ```js
 await createShell({
     // …
     onReady(shell) {
-        const dot = document.getElementById('dotStatus');
-        dot.className = 'dot on';     // .dot.on 在线 / .dot.warn 待确认 / .dot.off 离线
+        const dot = document.getElementById('selfDotStatus');   // 本项目自己写的 id
+        if (dot) dot.className = 'dot on';   // .dot.on 在线 / .dot.warn 待确认 / .dot.off 离线
     },
 });
 ```
+
+`shell.js` 只认模板里那几个固定钩子（`sidebarNav` / `content` / `tbMin` / `tbMax` / `tbClose` / `tbTitle`），
+其余 id 与类名归各项目自己管。
 
 ## 5. 依赖里的 indexmap 不是笔误
 

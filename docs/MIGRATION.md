@@ -145,7 +145,9 @@ await createShell({ appName: '…', panels: {…}, defaultPanel: '…' });
   如果边框看不清，正确做法是调 `ui-kit/src/tokens.css` 里的变量（一处改动三个项目受益），
   而不是回到项目里覆盖。
 - 它也缺 `color-scheme: dark`（深色模式下原生滚动条/form 控件会偏亮），
-  套件已在 `tokens.css` 里给了 `color-scheme: dark light`，迁完这个问题自动没了。
+  套件已在 `src/shell.css` 里给了 `color-scheme: dark light`，迁完这个问题自动没了。
+  （注意是 `shell.css`，不是 `tokens.css`：`tokens.css` 里只有亮暗成对变量与
+  `html[data-theme]` 锁定块，`color-scheme` 的"跟随系统"默认值写在骨架样式里。）
 - 它的 `polyfill.js` 里剪贴板支持被删过，换成 `@rolling/ui-kit/tauri` 后按需重新引剪贴板插件。
 
 ### Base64 Tool Desktop（建议最后）

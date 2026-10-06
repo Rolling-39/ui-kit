@@ -107,7 +107,7 @@ export function mount(root) {
                 el('input', { class: 'input', placeholder: 'placeholder 半透明' }),
             ]),
             el('div', { class: 'field' }, [
-                el('span', { class: 'label', text: '下拉 .select（展开面板不跟随 CSS 变量，已显式给深色底）' }),
+                el('span', { class: 'label', text: '下拉 .select（展开面板由系统绘制，用 --select-bg/--select-fg 定色）' }),
                 el('select', { class: 'select' }, [
                     el('option', { text: '选项一' }),
                     el('option', { text: '选项二' }),

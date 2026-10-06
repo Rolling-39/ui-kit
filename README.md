@@ -58,16 +58,17 @@ Rolling 的 Tauri 桌面应用界面套件。把原本在多个项目里各抄�
 | 能力 | 说明 |
 |---|---|
 | 主题 | 一套 CSS 变量定义全部配色、圆角、字体、阴影；品牌色用 RGB 三元组派生，换主题只改一处 |
+| 主题锁定 | 原生支持 `html[data-theme="light"\|"dark"]`。亮暗取值不同的量成对定义，跟随系统与手动锁定两条路径共用同一份值；`color-scheme` 一并切换，所以原生绘制的控件装饰也跟着走。**消费方不需要把调色板抄进自己项目** |
 | 窗口背景 | Windows Acrylic / Mica、macOS Vibrancy 的应用，**并把"到底生没生效"回报给前端** |
 | 窗口骨架 | 自定义标题栏（含拖拽区）、侧栏导航、内容区、响应式断点 |
 | 组件 | 卡片、按钮 6 种、输入 4 种、分段开关、标签块、徽标、状态点、指标网格、键值行、结果区、进度条、加载行、提示条等 |
-| 面板框架 | 面板清单注册、懒加载、`destroy`/`refresh` 生命周期、`#面板名` 直达路由、导航角标 |
-| 工具 | 日志（内存 + 面板 + 落盘三路）、提示条、`el()` DOM 构造、文件大小/时间/耗时格式化、事件总线 |
+| 面板框架 | 面板清单注册、懒加载、`destroy`/`refresh` 生命周期、`#面板名` 直达路由、导航角标。切换时**原子替换**：新面板先以隐藏的"待定"状态建好，就绪后再撤旧面板并揭示，所以看不到"只有骨架、数据还没到"的中间帧；启动后空闲预热其余面板模块（`prefetchPanels`，可关） |
+| 工具 | 日志（内存 + 面板 + 落盘三路）、提示条、`el()` DOM 构造、文件大小/时间/耗时格式化、UTC 时间串转本地时间（`fmtIsoLocal`）、事件总线 |
 | 排障 | 前端异常自动落盘到 `frontend.log`、启动日志、启动后页面探活 |
 
 它**不**提供业务组件。键盘可视化（`.keycap`/`.stage`）、宏编辑器、测试网格、色板这类带业务含义的东西留在各自项目里。
 
-## 三、四个设计决策，以及为什么这么做
+## 三、五个设计决策，以及为什么这么做
 
 这几条都是踩过坑之后才定下来的，改动它们之前先读理由。
 
@@ -93,7 +94,25 @@ Linux 没有，Windows 10 1809 以下没有。如果默认就把窗口做成透�
 
 **但要清楚它的边界**：`window-vibrancy` 在 Windows 上是分档实现的，
 Win11（build ≥ 22523）走 `DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE)`，这条路径**忽略传入的 tint**。
-所以 tint 只在 Windows 10 上真正起作用，Win11 的背景由系统主题决定。不要承诺"改 CSS 就能改 Win11 背景色"。
+所以 tint 只在 Windows 10 上真正起作用。不要承诺"改 CSS 就能改 Win11 背景色"。
+
+**不过"明暗"这一维是可控的**（2026-10-05 补）：Win11 虽然不认颜色，但认 DWM 的
+immersive dark mode，也就是 `window-vibrancy` 里 `apply_mica` 的第二个参数。
+所以前端还会把"当前档位是亮还是暗"一起传下去（`readBackdropDarkness()` 从 CSS 的
+`color-scheme` 推断）。这条是必须的：应用里手动锁定亮色而系统是深色时，只切 CSS 变量
+会得到"深色文字糊在深色 Mica 上"，实测那台机器上侧栏标签与背景的对比度掉到 1.13。
+
+**这个参数必须是具体的 `true`/`false`，连"跟随系统"档也要在前端解析掉。**
+`apply_mica` 的实现是 `if let Some(dark) = dark { ... }` —— 传 `None` 不是"跟随系统"，
+而是"这一帧什么都不做"，DWM 属性会停在最后一次设过的值上。踩过一次：
+应用内锁浅色（属性被写成浅）→ 切回"跟随系统"（传 `None`，属性没被改）→ 系统是深色、
+CSS 已经变深，窗口底却还是浅的，正文对比度实测只剩 1.39。
+现在 Rust 侧那个参数是必填的 `bool`，这类静默失败不可能再出现。
+
+原生后端控制不了明暗的场合（Win11 走 acrylic、macOS 的 vibrancy），命令会回报
+`dark_honored: false`，前端随即补一层与当前档位一致的底色（`html.backdrop-forced`）兜住对比度。
+**所以"锁了亮色却变成深色"这类问题不会再出现，代价是那种后端下玻璃质感会弱一点。**
+补底色只在**锁定档**做：跟随系统档原生背景本来就跟着系统走，与 CSS 天然一致。
 
 ### 3. 命令必须放在 Rust 子模块里
 
@@ -118,14 +137,32 @@ Win11（build ≥ 22523）走 `DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE)`
 `frontend.log`（进程崩了也能事后查）。`installErrorReporter()` 会把
 `window.onerror` 与 `unhandledrejection` 全部接住并落盘。
 
+### 5. 切换面板：先建好再换，不先清空
+
+最直觉的写法是"清空内容区 → 建新面板"，但那会露出中间态：屏幕上只剩几个表头，
+列表和卡片都还是空的。数据一到位就"啪"地补上，观感就是切换时闪一下。
+
+所以 `showPanel()` 的流程是：**先把新面板建好（挂成 `.panel-pending`，绝对定位 + 不可见，
+不影响布局），旧面板原地留着；等新面板就绪后再同一帧撤旧 + 揭示 + 复位滚动。**
+慢面板最多等 150ms，到点就先显示骨架，不让用户对着上一个界面发呆。
+
+这带来一条**面板契约**：`mount()` 返回的 promise 落地就代表"首屏已渲染完"。
+要先把数据取回来才能画的面板**必须 `async` 且先 `await` 首次取数** —— 返回得太早，
+shell 就以为它准备好了，空骨架又会被看见。完整流程见 [docs/REFERENCE.md](docs/REFERENCE.md)，
+契约写法见 [docs/USAGE.md](docs/USAGE.md#3-面板契约)。
+
+入场动画（`.panel-in`，0.3s 上移 14px）在**揭示那一刻**才挂上。写在 `.panel.active` 上不行：
+待定阶段的元素已经存在，动画会在不可见时就跑完，揭示时什么都看不到。动画只动 `transform`
+不动 `opacity`——从 `opacity: 0` 入场会让首帧看起来是空的，等于把刚去掉的空帧加回来。
+
 ## 四、平台支持
 
 | 平台 | 后端 | 结果 |
 |---|---|---|
-| Windows 11 build ≥ 22523 | `DwmSetWindowAttribute(SYSTEMBACKDROP_TYPE)` | 生效。**传入的 tint 被忽略**，背景跟随系统主题 |
+| Windows 11 build ≥ 22523 | `DwmSetWindowAttribute(SYSTEMBACKDROP_TYPE)` | 生效。**传入的 tint 被忽略**；背景的明暗由应用传下去的 `dark` 决定（锁定亮暗时能跟着走） |
 | Windows 10 build ≥ 17763 | `SetWindowCompositionAttribute(ACRYLICBLURBEHIND)` | 生效，tint 有效。已知拖动/缩放窗口会卡顿（上游用的非公开接口） |
 | Windows 10 更低版本 | — | 返回错误 → 前端自动切兜底底色 |
-| macOS | `NSVisualEffectMaterial::HudWindow` | 生效（**未实测**） |
+| macOS | `NSVisualEffectMaterial::HudWindow` | 生效（**未实测**）。明暗跟随系统外观，应用锁定不了 |
 | Linux | — | 无原生模糊 → 自动切兜底底色 |
 
 `createShell` 的 `backdropBackend` 可选 `'acrylic'`（默认，与现有项目观感一致）、
@@ -165,8 +202,11 @@ ui-kit/
 python -m http.server 8899 --directory <本仓库路径>
 # http://127.0.0.1:8899/demo/      加 ?blur=1 看玻璃效果
 
-# 文档一致性检查：链接/锚点是否可解析、文档里写的 API 与 CSS 变量是否真实存在
+# 文档一致性检查（五件事，见下）
 python scripts/check-docs.py
+
+# package.json 的 exports 是否都指向真实存在的文件
+node scripts/check-exports.mjs
 
 # 原生侧编译校验
 cargo check --manifest-path rust/Cargo.toml --offline
@@ -175,8 +215,19 @@ cargo check --manifest-path rust/Cargo.toml --offline
 `demo/preview-blur.png` 是有原生模糊时的样子（背后是 demo 自己造的假桌面），
 `demo/preview-fallback.png` 是没有原生模糊时的兜底样子。两者用的是同一套 CSS。
 
-**改了代码或文档都要跑一遍 `check-docs.py`。** 它挡的是三类错误：内部链接失效、
-锚点对不上（中文标题尤其容易）、以及文档里承诺了一个源码里并不存在的函数或 CSS 变量。
+**改了代码或文档都要跑一遍这两个脚本。** `check-docs.py` 挡五类错误：
+
+1. 内部链接失效、锚点对不上（中文标题尤其容易）
+2. 文档里承诺了源码里并不存在的函数 / CSS 变量 / CSS 类
+3. **主题锁定块覆盖不完整** —— `html[data-theme]` 漏掉某个亮暗有别的变量，或忘了声明 `color-scheme`。
+   这类漏掉不会报错，只会让"系统暗 + 手动锁亮"时界面变成杂交态，所以必须机器查
+4. **shell 钩子漂移** —— `shell.js` 依赖的 id 不在模板里，或 USAGE 的接入清单没提它
+5. 重复锚点
+
+`MIGRATION.md` 刻意不参与第 2 条里的"类名必须存在"检查：它本来就要点名一批属于各项目的
+业务类（`device-card` 之类），那些不属于套件。
+
+`.github/workflows/ci.yml` 会在 push / PR 时跑上面这些（**该工作流尚未在 GitHub 上实跑过**）。
 
 ## 七、状态
 
@@ -184,12 +235,27 @@ cargo check --manifest-path rust/Cargo.toml --offline
 
 - `cargo check` 通过（离线，Windows 目标）
 - 无头 Edge 实拍确认骨架、导航、角标、hash 路由、面板加载失败兜底、兜底底色、玻璃态透出
+- **主题锁定用 CDP 实测过 18 组组合**（系统深/浅 × 跟随/锁亮/锁暗 × 本项目 / 仅套件）：
+  锁亮拿到浅色表面且 `color-scheme: light`，锁暗反之，跟随系统与改动前一致。
+  对照组的旧版本有 4 组不通过
+- `scripts/check-docs.py` 的新检查做过故障注入验证：抽掉 `color-scheme`、抽掉任一亮暗成对
+  变量、在 USAGE 里点名不存在的类、shell.js 引用模板里没有的 id，四类都能被抓到
+- `scripts/check-exports.mjs` 同样做过故障注入（给 exports 加一条不存在的路径）
+- **面板切换用逐帧采样实测过**：可见面板数全程恒为 1、可见卡片数从不掉到 0；
+  另外注册了一个"慢面板"（`mount` 里先挂骨架、80ms 后才有数据）来复现真实延迟，
+  把 shell 的等待时机改成立刻揭示（`REVEAL_MAX_MS = 0`）能让断言失败
+  （零卡片帧 5/24、最小卡片数 0），改回来即通过
 
 未验证 / 已知限制：
 
 - macOS 与 Linux 没有实机跑过。macOS 分支的 `apply_vibrancy` 用的是 0.6 的四参数签名，能编译，但没跑过。
 - Win10 上 acrylic 用非公开接口，拖动窗口可能卡顿；Win11 可改用 `mica`。
 - `tauri.conf.json` 的 `csp` 建议不要留 `null`。需要放行非 `'self'` 资源时显式写策略。
+  注意：收紧 CSP 属于阻断型改动（写错会让页面白屏或图片全不加载），**必须在实机上验证放行清单之后再改**。
+- `.github/workflows/ci.yml` 是新增的，**没有在 GitHub 运行环境实跑过**。
+- **延迟类缺陷在浏览器里天然复现不出来**：mock 数据走微任务、跨不过一帧，
+  所以"骨架已挂、数据没到"那一帧不会被画出来。要验证这类修复必须自己造慢面板，
+  不能因为"测试全绿"就认定修好了。
 - 三个旧项目的 `apply_vibrancy` 写的是 0.6 之前的两个参数版本；那段代码在
   `#[cfg(target_os = "macos")]` 下、又都没有 macOS 构建，所以"编译不过"这件事一直没暴露。
 - `rust/Cargo.toml` 里同时出现在 `[dependencies]` 和 `[build-dependencies]` 的 `indexmap` 是**环境适配，别删**

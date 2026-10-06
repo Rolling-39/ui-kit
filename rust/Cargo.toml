@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Rolling 的 Tauri 桌面应用 UI 套件（原生侧）：窗口背景 + 窗口控制 + 前端日志"
 license = "MIT"
-repository = "https://github.com/Rolling-39/tauri-ui-kit"
+repository = "https://github.com/Rolling-39/ui-kit"
 publish = false
 
 [dependencies]

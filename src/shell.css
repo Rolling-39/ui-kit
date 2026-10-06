@@ -17,6 +17,9 @@
    display: none 把它撤掉，窗口的透明才透得出来。中间没有任何一帧的错误背景。 */
 html {
     background: transparent;
+    /* 这是"跟随系统"档的默认值。手动锁定（html[data-theme]）需要在
+       tokens.css 里用更高优先级重新声明一遍 —— 它不随 CSS 变量联动，
+       少了那一处会出现"表面换了配色、原生控件装饰没换"的半杂交态。 */
     color-scheme: dark light;
 }
 
@@ -37,6 +40,16 @@ body {
 }
 
 html.backdrop-ok .backdrop-fallback { display: none; }
+
+/* 原生背景的明暗控制不了、而应用又锁定了亮/暗时，把这层重新显示出来做底。
+   --backdrop-fallback 是按当前档位定义的渐变，因此这一层盖上去之后，
+   文字与背景的对比度就与所选档位一致了。
+   触发条件见 theme.js 的 reflectBackdrop()（active && 已锁定 && !dark_honored）。
+   保留 6% 的透明度，让底下那层原生背景的质感还透一点点出来。 */
+html.backdrop-ok.backdrop-forced .backdrop-fallback {
+    display: block;
+    opacity: 0.94;
+}
 
 /* ── 布局 ── */
 .app {
@@ -216,7 +229,40 @@ html.backdrop-ok .backdrop-fallback { display: none; }
 }
 
 .panel { display: none; }
-.panel.active { display: flex; flex-direction: column; gap: 18px; max-width: 980px; }
+.panel.active {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 980px;
+}
+
+/* "待定"面板：切换时新面板先这样挂上，等它把首屏数据渲染完再揭示。
+   absolute + visibility:hidden —— 不参与布局（旧面板仍留在原地，界面纹丝不动），
+   也不影响内部测量（visibility 为 hidden 时依旧会布局，getBoundingClientRect 拿得到真值）。
+   若改成"先撤旧面板、再建新面板"，中间那段"骨架已挂、数据没到"就会被看见：
+   屏幕上只剩 视图/分组/标签 三个表头，卡片和详情栏都是空的。
+   流程见 shell.js 的 showPanel 第 ③⑤⑥ 步。 */
+.panel-pending {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+}
+
+/* 揭示那一刻才挂上的入场动画。
+   不能把 animation 直接写在 .panel.active 上：待定阶段元素已经存在，
+   动画会在 visibility:hidden 时就跑完，揭示的那一刻反而什么都看不到。
+   只动 transform、不动 opacity —— 从 opacity 0 入场会让首帧看上去是空的。 */
+.panel-in { animation: panelIn 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+@keyframes panelIn {
+    from { transform: translateY(14px); }
+    to   { transform: none; }
+}
+
+/* 尊重系统的"减弱动效"设置 */
+@media (prefers-reduced-motion: reduce) {
+    .panel-in { animation: none; }
+}
 
 /* ── 滚动条 ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

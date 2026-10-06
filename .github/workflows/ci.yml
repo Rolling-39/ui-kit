@@ -1,0 +1,71 @@
+name: CI
+
+# 只做"能在干净环境里确定性复现"的检查，不碰需要真机 / GPU / 桌面的部分。
+#
+# 三条检查的性质：
+#   文档自检、exports 自检 —— 纯 Python / Node 标准能力，无外部依赖
+#   cargo check            —— rust/Cargo.lock 已入库，版本解析是确定的；但首次要联网拉 crate
+# 所以 cargo 那步失败时，先看是不是 runner 的网络问题，再看代码。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs-and-native:
+    name: 文档自检 + 原生编译
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 文档、主题锁定块、shell 钩子一致性检查
+        run: python scripts/check-docs.py
+
+      - name: demo 与样式入口完整性
+        shell: pwsh
+        run: |
+          $need = @(
+            'demo/index.html', 'demo/main.js',
+            'demo/panels/showcase.js', 'demo/panels/contract.js',
+            'src/index.css', 'src/tokens.css', 'src/shell.css', 'src/glass.css',
+            'src/shell.template.html'
+          )
+          $missing = $need | Where-Object { -not (Test-Path $_) }
+          if ($missing) {
+            Write-Error ("缺少文件：" + ($missing -join ', '))
+            exit 1
+          }
+          Write-Host 'demo 与样式入口齐全'
+
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 原生侧编译校验
+        run: cargo check --manifest-path rust/Cargo.toml
+
+  exports-resolve:
+    name: 导出入口可解析
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 先装 Node，再做任何 node 命令 —— 顺序反了会变成"靠 runner 自带的 Node 碰运气"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: package.json 的 exports 是否都指向真实存在的文件
+        run: node scripts/check-exports.mjs
+
+      - name: 装成 file: 依赖后仍能解析
+        shell: pwsh
+        run: |
+          $tmp = Join-Path $env:RUNNER_TEMP 'consumer'
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          Set-Content (Join-Path $tmp 'package.json') '{"name":"consumer","private":true,"type":"module"}'
+          Push-Location $tmp
+          npm install $env:GITHUB_WORKSPACE --no-audit --no-fund
+          node $env:GITHUB_WORKSPACE/scripts/check-exports.mjs node_modules/@rolling/ui-kit
+          Pop-Location

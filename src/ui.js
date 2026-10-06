@@ -130,6 +130,59 @@ export function fmtTime(ms) {
         + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+/**
+ * 解析"后端存下来的 UTC 时间串"，返回 Date；无法解析返回 null。
+ *
+ * 桌面端的落库时间几乎都是 UTC（前端 new Date().toISOString()、SQLite 的
+ * datetime('now') 都是 UTC），但两种格式的解析规则不一样，踩过一次：
+ *   "2026-10-05T12:00:00.000Z"  → 带 Z，JS 按 UTC 解析，正确
+ *   "2026-10-05 12:00:00"       → 空格分隔、无时区，JS 按**本地时间**解析
+ * 后者是 SQLite 的格式，直接 new Date() 会平白丢掉一个时区偏移。
+ * 所以这里显式给无时区的串补上 Z。
+ */
+export function parseUtc(s) {
+    if (!s) return null;
+    const t = String(s).trim();
+    const m = t.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)(\.\d+)?$/);
+    const d = new Date(m ? `${m[1]}T${m[2]}${m[3] || ''}Z` : t);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * 把后端存的 UTC 时间串渲染成本地时间。
+ * 不要直接 slice 字符串：那样显示的是 UTC，东八区会差 8 小时，
+ * 而同一个应用里的日志面板用的是本地时间，界面上会出现两套时区。
+ *
+ * @param {string} iso 后端时间串（ISO 或 SQLite 格式，均按 UTC 处理）
+ * @param {object} [opts]
+ * @param {string} [opts.fallback='—'] 空值时显示什么
+ * @param {boolean} [opts.seconds=false] 是否带秒
+ * @param {boolean} [opts.dateOnly=false] 只显示日期
+ */
+export function fmtIsoLocal(iso, opts = {}) {
+    const { fallback = '—', seconds = false, dateOnly = false } = opts;
+    const d = parseUtc(iso);
+    if (!d) return iso ? String(iso) : fallback;
+    const p = (n) => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    if (dateOnly) return date;
+    const time = seconds
+        ? `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+        : `${p(d.getHours())}:${p(d.getMinutes())}`;
+    return `${date} ${time}`;
+}
+
+/** 相对天数：用于"最近打开"这类列表，比绝对时间好读 */
+export function fmtRelativeDay(iso, fallback = '从未') {
+    const d = parseUtc(iso);
+    if (!d) return fallback;
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return '今天';
+    if (days === 1) return '昨天';
+    if (days < 30) return `${days} 天前`;
+    return fmtIsoLocal(iso, { dateOnly: true, fallback });
+}
+
 export function fmtDuration(ms) {
     const s = Number(ms) / 1000;
     if (s < 60) return s.toFixed(1) + 's';
