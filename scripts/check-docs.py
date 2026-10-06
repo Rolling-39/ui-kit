@@ -25,6 +25,15 @@ import os
 import re
 import sys
 
+# 输出全是中文，而 Windows 上 stdout 的默认编码不一定是 UTF-8：
+# GitHub Actions 的 windows-latest 就是 cp1252，print 中文会直接抛 UnicodeEncodeError
+# 把检查弄挂 —— 一个与检查内容无关的假失败。所以在这里显式要求 UTF-8。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8')
+    except Exception:
+        pass  # 老版本 Python 或被重定向成不支持 reconfigure 的对象时忽略
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MD_FILES = ['README.md'] + sorted(
     os.path.relpath(p, ROOT)
