@@ -227,7 +227,12 @@ cargo check --manifest-path rust/Cargo.toml --offline
 `MIGRATION.md` 刻意不参与第 2 条里的"类名必须存在"检查：它本来就要点名一批属于各项目的
 业务类（`device-card` 之类），那些不属于套件。
 
-`.github/workflows/ci.yml` 会在 push / PR 时跑上面这些（**该工作流尚未在 GitHub 上实跑过**）。
+`.github/workflows/ci.yml` 会在 push / PR 时跑上面这些，以及 `cargo check` 与"装成 `file:` 依赖后
+exports 仍能解析"。已在 GitHub Actions（`windows-latest`）上通过。
+
+它自己踩过两个坑，都记在文件头了：YAML 值里的 `": "` 会被当成映射分隔符（整个工作流解析失败、
+运行耗时显示 0s）；`check-docs.py` 的输出是中文，而 runner 的 stdout 默认是 cp1252 —— 现在脚本
+自己 `reconfigure(encoding='utf-8')`，不再依赖运行环境的控制台编码。
 
 ## 七、状态
 
@@ -252,7 +257,9 @@ cargo check --manifest-path rust/Cargo.toml --offline
 - Win10 上 acrylic 用非公开接口，拖动窗口可能卡顿；Win11 可改用 `mica`。
 - `tauri.conf.json` 的 `csp` 建议不要留 `null`。需要放行非 `'self'` 资源时显式写策略。
   注意：收紧 CSP 属于阻断型改动（写错会让页面白屏或图片全不加载），**必须在实机上验证放行清单之后再改**。
-- `.github/workflows/ci.yml` 是新增的，**没有在 GitHub 运行环境实跑过**。
+- `.github/workflows/ci.yml` 已在 GitHub Actions（`windows-latest`）实跑通过：文档自检、
+  exports 自检、`cargo check` 三步全绿。仍未覆盖的是真机部分——原生模糊的观感、平台差异，
+  那些 CI 看不见。
 - **延迟类缺陷在浏览器里天然复现不出来**：mock 数据走微任务、跨不过一帧，
   所以"骨架已挂、数据没到"那一帧不会被画出来。要验证这类修复必须自己造慢面板，
   不能因为"测试全绿"就认定修好了。
