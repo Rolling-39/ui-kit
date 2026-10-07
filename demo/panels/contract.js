@@ -22,7 +22,8 @@ export function mount(root) {
             el('div', { class: 'card-header', text: '面板契约' }),
             el('p', { class: 'hint', text:
                 'export function mount(root) 里做的事情都会在切走时被回收 —— '
-                + 'mount 返回 { destroy, refresh }，切到别的面板前 shell 会 await destroy()。' }),
+                + 'mount 返回 { destroy, refresh }。切走时 shell 会调 destroy()，'
+                + '但它是异步回收、不阻塞新面板显示（刻意不 await，否则揭示会被清理拖住）。' }),
             el('div', { class: 'kv' }, [
                 el('span', { class: 'k', text: '面板内定时器（每秒 +1，切走即停）' }),
                 counter,
@@ -35,7 +36,10 @@ export function mount(root) {
                 el('button', {
                     class: 'btn btn-outline',
                     text: '触发 demo-event',
-                    onClick: () => { window.dispatchEvent(new Event('x')); snack('已触发'); },
+                    // 走事件总线（ui.js 的 emit）。写 window.dispatchEvent 是没用的：
+                    // 那是 DOM 事件，进不了总线，下面 on('demo-event') 的订阅永远收不到，
+                    // 而这个面板的卖点恰恰是演示总线。
+                    onClick: () => { emit('demo-event', new Date().toLocaleTimeString()); snack('已触发'); },
                 }),
                 el('button', {
                     class: 'btn btn-outline',

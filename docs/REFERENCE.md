@@ -239,8 +239,10 @@ CSS 变量、CSS 类、JS 模块、Rust 命令的速查。想先跑起来看 [US
 
 ```html
 <div class="chip-row">
-  <span class="chip on">已选</span>
-  <span class="chip">未选</span>
+  <!-- 可点的 chip 用 <button> 承载：span 无法聚焦，键盘用户选不到它 -->
+  <button class="chip on">已选</button>
+  <button class="chip">未选</button>
+  <!-- 纯展示的键位标记仍用 span -->
   <span class="bind-chip">Ctrl + A</span>
   <span class="bind-chip none">未绑定</span>
 </div>
@@ -482,8 +484,6 @@ import { initBackdrop, isBackdropActive, refreshBackdrop, watchColorScheme, read
 前端就解析掉，原生层只收具体值；Rust 侧的命令参数也因此是必填的 `bool`。
 
 `createShell` 已经调了 `initBackdrop` 和 `watchColorScheme`。只有你要自己控制时机时才直接用这两个。
-
-**自己管主题的话，切完 `data-theme` 必须调一次 `refreshBackdrop()`**：原生背景的明暗是那一步才告诉原生层的。漏掉就会得到"CSS 已经切到浅色、窗口背后还是系统那套深色"，浅色文字变深、深色文字糊在深色底上。`check-docs.py` 校验 `color-scheme` 与锁定块覆盖，就是为这件事兜底。
 
 **自己管主题的话，切完 `data-theme` 必须调一次 `refreshBackdrop()`**：原生背景的明暗是那一步才告诉原生层的。漏掉就会得到"CSS 已经切到浅色、窗口背后还是系统那套深色"，浅色文字变深、深色文字糊在深色底上。`check-docs.py` 校验 `color-scheme` 与锁定块覆盖，就是为这件事兜底。
 

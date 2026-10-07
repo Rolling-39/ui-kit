@@ -10,6 +10,23 @@
    换主题时不需要再逐个 grep 十处 rgba(57,197,187,…)。
    ───────────────────────────────────────────────────────────── */
 
+/* ── 键盘焦点 ──
+   统一走 :focus-visible：键盘（Tab）触发的焦点显示品牌色圈，鼠标点击不显示，
+   避免"点一下多一个圈"。outline 在 Chromium 里会跟随元素的 border-radius，
+   所以不必为每个圆角元素单独写圆角。
+   输入类有自己的 focus 样式（border-color + box-shadow），这里排除掉，
+   否则会叠出两层圈。 */
+:focus-visible {
+    outline: 2px solid rgba(var(--primary-rgb), 0.6);
+    outline-offset: 2px;
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+    outline: none;
+}
+
 /* ── 卡片 ── */
 .card {
     background: var(--surface-glass);
@@ -164,6 +181,8 @@
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 12px;
+    /* button 不继承 font-family，而 chip 建议用 <button> 承载（见下），所以显式给 */
+    font-family: var(--font);
     border: 0.5px solid var(--outline);
     background: var(--surface-glass);
     color: var(--on-surface-variant);
@@ -171,6 +190,9 @@
     user-select: none;
     transition: all var(--transition);
 }
+/* 可点的 chip 建议用 <button class="chip"> 承载：span 无法聚焦，
+   键盘用户根本选不到它。这里只抹掉 UA 的默认外观，布局属性不动。 */
+button.chip { appearance: none; -webkit-appearance: none; }
 .chip:hover { border-color: var(--primary); color: var(--primary); }
 .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 500; }
 

@@ -89,6 +89,15 @@ export function isThemeLocked() {
 let active = false;
 let chosenBackend = 'acrylic';
 
+/**
+ * 是否允许启用原生背景。`initBackdrop({ force: false })` 时置 false。
+ *
+ * 必须记在模块级：调用方明确关掉了玻璃，而 watchColorScheme 的 handler
+ * 与 refreshBackdrop() 都会重新推一次原生背景 —— 只在 initBackdrop 里
+ * 判断一次的话，系统切一次亮暗就把用户关掉的东西又打开了，且没有任何日志。
+ */
+let backdropAllowed = true;
+
 /** 原生模糊是否已生效 */
 export function isBackdropActive() { return active; }
 
@@ -135,6 +144,7 @@ function describeMode(dark) {
 export async function initBackdrop(opts = {}) {
     const { backend = chosenBackend, force = true } = opts;
     chosenBackend = backend;
+    backdropAllowed = force;
     const html = document.documentElement;
     const tint = readBackdropTint();
 
@@ -180,6 +190,17 @@ export function watchColorScheme(onChange) {
     if (!window.matchMedia) return () => {};
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = async () => {
+        if (!backdropAllowed) {
+            // 配置要求强制不透明兜底：系统切主题不该把它推翻。
+            // 这里只写日志、不碰 DOM —— 兜底底色是按当前档位定义的，
+            // 而 CSS 变量本来就跟着系统走，不需要额外动作。
+            log('系统配色已切换，但配置为强制不透明兜底，维持现状');
+            if (typeof onChange === 'function') {
+                onChange({ applied: false, backend: 'disabled', os_build: null,
+                           detail: '配置强制使用不透明兜底底色', dark_honored: false });
+            }
+            return;
+        }
         const tint = readBackdropTint();
         const dark = readBackdropDarkness();
         const r = await applyBackdrop(tint, chosenBackend, dark);
@@ -202,6 +223,14 @@ export function watchColorScheme(onChange) {
  */
 export async function refreshBackdrop(backend = chosenBackend) {
     chosenBackend = backend;
+    if (!backdropAllowed) {
+        // 同上：配置关掉了玻璃，重设请求也应当维持兜底而不是把它打开
+        const html = document.documentElement;
+        active = false;
+        html.classList.remove('backdrop-ok', 'backdrop-forced');
+        return { applied: false, backend: 'disabled', os_build: null,
+                 detail: '配置强制使用不透明兜底底色', dark_honored: false };
+    }
     const dark = readBackdropDarkness();
     const r = await applyBackdrop(readBackdropTint(), backend, dark);
     reflectBackdrop(r);

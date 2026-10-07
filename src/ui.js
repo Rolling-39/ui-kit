@@ -13,6 +13,8 @@ const LOG_MAX = 2000;
 const logLines = [];
 const logSubs = new Set();
 
+/** 写一条日志，返回**带上时间戳的那一行**（logPersist 复用它落盘，
+ *  这样内存面板与磁盘文件里的时间戳完全一致）。 */
 export function log(msg) {
     const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
     logLines.push(line);
@@ -21,12 +23,16 @@ export function log(msg) {
         try { fn(line, logLines); } catch (_) { /* 日志回调自身出错不再递归 */ }
     });
     console.log(line);
+    return line;
 }
 
 /** 同时写日志面板与磁盘。启动阶段与错误路径用这个。 */
 export function logPersist(msg) {
-    log(msg);
-    jsLog(String(msg));
+    // 落盘的那一行必须自带时间戳。内存面板的时间戳是在 log() 里拼的，
+    // 而写进 frontend.log 的原本只是裸消息 —— 事后排障时"什么时候错的"
+    // 往往比"错在哪"更关键，文件里没有时间就只能靠猜。
+    // 这里复用 log() 的返回值，保证两处的时间戳字符串完全一致。
+    jsLog(log(msg));
 }
 
 export function logText() { return logLines.join('\n'); }
@@ -50,6 +56,11 @@ export function snack(msg, kind = 'ok', dur = 2600) {
     const el = document.createElement('div');
     el.className = 'snackbar' + (kind === 'ok' ? '' : ' ' + kind);
     el.textContent = String(msg);
+    // 无障碍：屏幕阅读器要有 role 才会播报。错误用 alert（打断当前朗读），
+    // 其余用 status（等当前朗读结束再播）。少了这两个属性，提示条对读屏用户等于不存在。
+    const urgent = kind === 'err';
+    el.setAttribute('role', urgent ? 'alert' : 'status');
+    el.setAttribute('aria-live', urgent ? 'assertive' : 'polite');
     document.body.appendChild(el);
     setTimeout(() => el.remove(), dur);
 }

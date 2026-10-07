@@ -399,7 +399,7 @@ export function mount(root) {
 | 成员 | 说明 |
 |---|---|
 | `activeName` | 当前面板名（getter） |
-| `showPanel(name)` | 切换面板，会先 `await` 上一个面板的 `destroy()` |
+| `showPanel(name)` | 切换面板。上一个面板的 `destroy()` 在揭示后**异步**回收，不阻塞显示；需要严格先于新面板执行的清理，请放在新面板 `mount` 的开头，或用事件总线衔接 |
 | `refresh()` | 调用当前面板的 `refresh()` |
 | `setBadge(key, value)` | 设置导航角标，传 `null` 移除 |
 | `panels` | 面板清单 |
@@ -626,7 +626,7 @@ build 在 17763 到 22522 之间走的是 SWCA（非公开接口），拖动窗�
 ### `Failed to resolve import "@rolling/ui-kit/index.css"`
 
 `file:` 依赖的软链没被 Vite 跟随。检查 `vite.config.js` 里的
-`server.fs.allow` 和 `resolve.preserveSymlinks`；仍不行就用 4.2 节末尾说的别名方案。
+`server.fs.allow` 和 `resolve.preserveSymlinks`；仍不行就用[步骤 2](#步骤-2放行-vite-的符号链接)的引言块里说的别名方案。
 
 ### 面板打不开，显示"面板加载失败"
 

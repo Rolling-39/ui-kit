@@ -135,8 +135,10 @@ export function mount(root) {
                 }),
             ]),
             el('div', { class: 'chip-row' }, [
-                el('span', { class: 'chip on', text: '已选' }),
-                el('span', { class: 'chip', text: '未选' }),
+                // chip 用 <button> 承载：span 无法聚焦，键盘用户选不到它。
+                // bind-chip 是纯键位展示、不可交互，仍用 span。
+                el('button', { class: 'chip on', type: 'button', text: '已选' }),
+                el('button', { class: 'chip', type: 'button', text: '未选' }),
                 el('span', { class: 'bind-chip', text: 'Ctrl + A' }),
                 el('span', { class: 'bind-chip none', text: '未绑定' }),
             ]),

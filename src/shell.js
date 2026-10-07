@@ -7,8 +7,11 @@
 //
 // 面板模块契约：
 //   export function mount(rootEl) { ... return { destroy?, refresh? } }
-//   - destroy() 在切走前被 await：面板如果起了系统级监听线程/定时器，
-//     不显式停掉会一直在后台跑（Keypad 的按键测试面板就是这种情况）。
+//   - destroy() 在面板被切走时被调用，用来回收面板自己起的定时器 / 系统级监听
+//     （Keypad 的按键测试面板就是这种情况）。**它是异步回收、不阻塞揭示**：
+//     不要依赖"旧面板清理完成之后再挂新面板"这种时序（实现刻意不 await，
+//     否则揭示会被清理拖住）。需要严格先于新面板执行的清理，放在新面板
+//     mount 的开头，或用事件总线衔接。
 //   - refresh() 由 shell.refresh() 调用。
 
 import { minimizeWindow, toggleMaximizeWindow, closeWindow } from './tauri.js';
@@ -39,10 +42,34 @@ export async function createShell(options) {
 
     if (!Object.keys(panels).length) throw new Error('createShell 需要至少一个面板');
 
-    // 2) 骨架检查：宁可当场抛错，也不要渲染出一个空壳让人以为 UI 坏了
-    const nav = $('sidebarNav');
-    const content = $('content');
-    if (!nav || !content || !$('tbMin')) throw new Error(TEMPLATE_HINT);
+    // 2) 骨架检查：宁可当场抛错，也不要渲染出一个空壳让人以为 UI 坏了。
+    //    必需的钩子逐个查、缺哪个点名哪个 —— 只查一个的话，模板被改坏时
+    //    用户看到的是 TypeError，而不是指向模板的提示。
+    //
+    //    这里必须保留"逐个取值"的**字面调用**形式：scripts/check-docs.py 用一条
+    //    正则扫「$ 加圆括号、引号、名称、右圆括号」这种写法，来校验这些 id
+    //    在模板与 USAGE 里都有。改成遍历一个字符串数组，正则就抓不到，
+    //    那条 CI 检查会静默失效（注释里也别写这种字面量，同样会被抓）。
+    //
+    //    只列**缺了会坏功能**的五个。tbTitle 不在其中：它只决定标题栏那一行文字
+    //    （document.title 是另外设置的、不依赖它），缺了属于降级而非故障 ——
+    //    Base64 / S2PNG 的 index.html 就没有这个 id，不该因为一个纯展示元素
+    //    让整个应用起不来。
+    const REQUIRED_HOOKS = {
+        sidebarNav: $('sidebarNav'),
+        content: $('content'),
+        tbMin: $('tbMin'),
+        tbMax: $('tbMax'),
+        tbClose: $('tbClose'),
+    };
+    const missingHooks = Object.entries(REQUIRED_HOOKS)
+        .filter(([, node]) => !node)
+        .map(([id]) => '#' + id);
+    if (missingHooks.length) {
+        throw new Error(`${TEMPLATE_HINT}（缺少 ${missingHooks.join('、')}）`);
+    }
+    const nav = REQUIRED_HOOKS.sidebarNav;
+    const content = REQUIRED_HOOKS.content;
 
     // 兜底底色层。模板里已经写了，写在这里是为了防"模板被改过"的情况：
     // 缺了它会变成完全透明的窗口 + 0.15 不透明的表面，文字糊在桌面上。
@@ -54,14 +81,15 @@ export async function createShell(options) {
         log('未找到 .backdrop-fallback，已自动补一层。建议写进 index.html 以保证首帧就有。');
     }
 
-    // 3) 标题栏
-    $('tbMin').addEventListener('click', minimizeWindow);
-    $('tbMax').addEventListener('click', toggleMaximizeWindow);
-    $('tbClose').addEventListener('click', closeWindow);
+    // 3) 标题栏（钩子已在上面校验过）
+    REQUIRED_HOOKS.tbMin.addEventListener('click', minimizeWindow);
+    REQUIRED_HOOKS.tbMax.addEventListener('click', toggleMaximizeWindow);
+    REQUIRED_HOOKS.tbClose.addEventListener('click', closeWindow);
 
     // 4) 侧栏
     const titleEl = document.querySelector('.sidebar-title');
     if (titleEl) titleEl.textContent = sidebarTitle;
+    // 可选钩子：缺了只是标题栏少一行文字，下面的用法都有 null 保护
     const titlebarTitleEl = $('tbTitle');
     const footEl = document.querySelector('.sidebar-footer');
     if (footEl && footer) footEl.textContent = footer;
@@ -94,6 +122,10 @@ export async function createShell(options) {
     /** 揭示新面板前最多等多久（ms）。到点就先把当前的显示出来，
      *  让骨架/加载态自己给反馈 —— 慢面板不能让用户对着上一个界面发呆。 */
     const REVEAL_MAX_MS = 150;
+
+    /** 首个面板的最长等待（ms）。比切换路径宽得多：启动本身要读模块、拉首次数据，
+     *  多等一会儿是正常的；这个值的作用只是在 mount 挂死时别让应用永远空屏。 */
+    const FIRST_REVEAL_MAX_MS = 1000;
 
     /** 回收一个面板手柄。刻意不 await：揭示画面不该被别的东西拖住。 */
     function safeDestroy(handle) {
@@ -189,8 +221,19 @@ export async function createShell(options) {
         } else {
             // 启动时的第一个面板：没有旧面板可留，直接显示骨架（与改动前一致），
             // 别让应用窗口先空一段。
-            await mounted;
-            if (token !== switchToken) return;
+            //
+            // 但同样要有超时兜底：首个面板的 mount 若挂在永不 resolve 的 promise 上，
+            // 无限等会让应用启动后内容区永远空白，**而且 createShell 永不返回**
+            // ——启动日志、onReady、面板预热全部堵在它后面。
+            // 超时给得比切换路径宽：启动本来就要多花点时间，这里只在挂死时兜底。
+            await Promise.race([mounted, new Promise((r) => setTimeout(r, FIRST_REVEAL_MAX_MS))]);
+            if (token !== switchToken) {
+                // 等待期间又切走了（导航监听在 showPanel 之前就绑好了，启动瞬间就能点）。
+                // 与 willSwap 分支对齐：手柄要等它建完再回收，否则首面板里起的
+                // 定时器/订阅永远不会被释放 —— 典型的"切一次多一个"型泄漏。
+                mounted.then(() => { if (token !== switchToken) safeDestroy(handle); });
+                return;
+            }
             root.classList.add('panel-in');
             if (content.scrollTop !== 0) content.scrollTop = 0;
         }
@@ -203,7 +246,7 @@ export async function createShell(options) {
     /** 面板加载/挂载失败时的兜底卡片。桌面端没有控制台，界面必须自己说清楚。 */
     function renderPanelError(root, name, err) {
         logPersist(`加载面板 ${name} 失败：${err}`);
-        root.appendChild(el('div', { class: 'card' }, [
+        root.appendChild(el('div', { class: 'card', role: 'alert' }, [
             el('div', { class: 'card-header', text: '面板加载失败' }),
             el('p', { class: 'hint err-text', text: String(err) }),
         ]));

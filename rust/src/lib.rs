@@ -98,9 +98,39 @@ pub fn frontend_log_path_of(app: &tauri::AppHandle) -> Result<std::path::PathBuf
     Ok(dir.join("frontend.log"))
 }
 
+/// 前端日志的体积上限。超过就保留尾部重写。
+/// 桌面应用可能连续运行数周，只 append 不轮转会让这个文件无限增长。
+const FRONTEND_LOG_MAX: u64 = 1024 * 1024; // 1 MB
+/// 轮转后保留的尾部长度（按字节，实际会向后对齐到第一个换行）
+const FRONTEND_LOG_KEEP: u64 = 256 * 1024;
+
+/// 超过上限时把日志截成"尾部 KEEP 字节"。
+/// 起点向后对齐到第一个换行，保证不会留下半行（否则首行会是残缺的堆栈或 JSON）。
+fn rotate_frontend_log_if_needed(path: &std::path::Path) {
+    let len = match std::fs::metadata(path) {
+        Ok(m) => m.len(),
+        Err(_) => return, // 文件还不存在，不需要轮转
+    };
+    if len <= FRONTEND_LOG_MAX {
+        return;
+    }
+    let data = match std::fs::read(path) {
+        Ok(d) => d,
+        Err(_) => return, // 读不到就放弃，下一条日志还会再试
+    };
+    let start = data.len().saturating_sub(FRONTEND_LOG_KEEP as usize);
+    let from = data[start..]
+        .iter()
+        .position(|&b| b == b'\n')
+        .map(|i| start + i + 1)
+        .unwrap_or(start);
+    let _ = std::fs::write(path, &data[from..]);
+}
+
 /// 追加一行到前端日志
 pub fn append_frontend_log(app: &tauri::AppHandle, text: &str) -> Result<(), String> {
     let path = frontend_log_path_of(app)?;
+    rotate_frontend_log_if_needed(&path);
     let mut f = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
