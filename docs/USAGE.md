@@ -537,6 +537,10 @@ const call = (cmd, args) => (isTauri ? invoke(cmd, args) : mockInvoke(cmd, args)
 改完记得在原生侧也调一次 `refreshBackdrop()`：它会把 tint 与**当前档位的明暗**一起重新告诉原生层。
 tint 只在 Win10 有意义，但明暗那一路在任何平台都有意义 —— 应用里能手动切"跟随系统 / 亮 / 暗"的话，
 切完不调这一下，就会得到"CSS 已经换了配色、窗口背后的原生背景没换"。
+
+> 换**档位**（跟随系统 / 亮 / 暗）请用 `setTheme('light' | 'dark' | 'system')` —— 它把
+> 「设 `data-theme` + 调 `refreshBackdrop()`」合成一次调用，不会漏掉第二步。上面说的手动两步
+> 只在你要自己控制时机时才用得上。
 `theme.js` 的 `readBackdropDarkness()` 会自动从 CSS 的 `color-scheme` 读出该传什么，不用你手动算，
 而且"跟随系统"档它也会解析成系统当前的实际取值（不能留空，理由见 `docs/REFERENCE.md` 的
 `@rolling/ui-kit/theme` 一节）。

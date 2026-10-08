@@ -149,7 +149,7 @@
 .btn-text { background: transparent; color: var(--primary); padding: 8px 14px; }
 .btn-text:hover { background: var(--primary-container); }
 
-.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger { background: var(--danger); color: var(--on-semantic); }
 .btn-danger:hover { filter: brightness(1.08); }
 
 .btn-sm { padding: 6px 14px; font-size: 12px; }
@@ -374,8 +374,10 @@ button.chip { appearance: none; -webkit-appearance: none; }
     max-width: 70vw;
     box-shadow: var(--shadow-lg);
 }
-.snackbar.err { background: var(--danger); color: #fff; }
-.snackbar.warn { background: var(--warn); color: #fff; }
+/* 语义色块上的文字随档位走：浅色档色块深 → 白字，深色档色块亮 → 深字。
+   以前写死 #fff，深色档四个语义色的对比度只有 3.39 ~ 3.93:1（AA 要 4.5）。 */
+.snackbar.err { background: var(--danger); color: var(--on-semantic); }
+.snackbar.warn { background: var(--warn); color: var(--on-semantic); }
 
 @keyframes snackIn {
     from { opacity: 0; transform: translateX(-50%) translateY(12px); }

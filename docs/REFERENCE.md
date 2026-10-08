@@ -83,11 +83,18 @@ CSS 变量、CSS 类、JS 模块、Rust 命令的速查。想先跑起来看 [US
 | `--primary` | `rgb(var(--primary-rgb))` | 同左 | 派生，别直接改 |
 | `--primary-container` | `rgba(var(--primary-rgb), 0.15)` | 同左 | 悬停底色 |
 | `--on-primary` | `#003734` | 同左 | 品牌色上的文字 |
-| `--success-rgb` | `29, 158, 117` | 同左 | |
-| `--danger-rgb` | `226, 75, 74` | 同左 | |
-| `--warn-rgb` | `186, 117, 23` | 同左 | |
-| `--info-rgb` | `55, 138, 221` | 同左 | |
+| `--success-rgb` | `23, 125, 93` | `27, 150, 111` | 语义色"当前档位"，派生自 `--success-rgb-light` / `--success-rgb-dark`。**要改就改成对的那两个** |
+| `--danger-rgb` | `215, 36, 35` | `227, 83, 82` | 同上 |
+| `--warn-rgb` | `156, 98, 19` | `185, 117, 23` | 同上 |
+| `--info-rgb` | `33, 112, 192` | `49, 135, 220` | 同上 |
+| `--on-semantic` | `#FFFFFF` | `#14181A` | **语义色块之上的文字色**。浅色档色块深→白字，深色档色块亮→深字；写死 `#fff` 会让深色档掉到 3.4~3.9:1 |
 | `--success` / `--danger` / `--warn` / `--info` | 由上面派生 | 同左 | |
+
+语义色这一组是**用 WCAG 公式反解出来的**，不是调出来的：四个色 × 四个场景（白字压色块、
+彩字压浅底、彩字压深底、深字压色块）全部 ≥ 4.5:1，最低 4.51、最高 5.09。
+浅色档既要当色块底（配白字）又要当彩色文字（压浅底），两个需求都指向"更深"；
+深色档当彩色文字要够亮，而色块上的文字改用 `--on-semantic`，所以色块也要够亮。
+**改之前先算一遍，别凭眼睛调** —— 改前的值在这四个场景里全部不达标（3.03 ~ 3.93）。
 
 ### 表面与描边
 
@@ -457,13 +464,14 @@ import { isTauri, invoke, listen, openDialog, saveDialog } from '@rolling/ui-kit
 | `jsLog(text)` | 空操作 |
 | `frontendLogPath()` | `''` |
 | `applyBackdrop(tint, backend?, dark?)` | `{ applied: false, backend: 'browser', ... }` |
+| `clearBackdrop()` | `false` |
 
 `invokeOr` 适合"取一个可选信息，失败就用默认值"的场合，省一次 try/catch。
 
 ### `@rolling/ui-kit/theme`
 
 ```js
-import { initBackdrop, isBackdropActive, refreshBackdrop, watchColorScheme, readBackdropTint, readBackdropDarkness, isThemeLocked } from '@rolling/ui-kit/theme';
+import { initBackdrop, isBackdropActive, refreshBackdrop, setTheme, watchColorScheme, readBackdropTint, readBackdropDarkness, isThemeLocked } from '@rolling/ui-kit/theme';
 ```
 
 | 导出 | 说明 |
@@ -475,6 +483,7 @@ import { initBackdrop, isBackdropActive, refreshBackdrop, watchColorScheme, read
 | `isBackdropActive()` | 原生模糊当前是否生效 |
 | `isBackdropForced()` | 是否处于"原生背景明暗控制不了、已补自定义底色"的状态（`html.backdrop-forced`） |
 | `watchColorScheme(fn?)` | 监听系统亮/暗色切换并重新取 tint 应用；返回停止函数 |
+| `setTheme(mode, { backend? })` | **推荐入口**：设 `light` / `dark` / `system` 档并自动同步原生窗口背景，一步到位。`system` 档等于删掉 `data-theme`；`mode` 传别的值会当场抛错 |
 | `refreshBackdrop(backend?)` | 手动重设（换主色后、或切换"跟随系统 / 亮 / 暗"后都要调） |
 
 **`readBackdropDarkness()` 为什么不返回 `null` 表示"跟随系统"**：原生层的那个参数最终落到
@@ -485,7 +494,7 @@ import { initBackdrop, isBackdropActive, refreshBackdrop, watchColorScheme, read
 
 `createShell` 已经调了 `initBackdrop` 和 `watchColorScheme`。只有你要自己控制时机时才直接用这两个。
 
-**自己管主题的话，切完 `data-theme` 必须调一次 `refreshBackdrop()`**：原生背景的明暗是那一步才告诉原生层的。漏掉就会得到"CSS 已经切到浅色、窗口背后还是系统那套深色"，浅色文字变深、深色文字糊在深色底上。`check-docs.py` 校验 `color-scheme` 与锁定块覆盖，就是为这件事兜底。
+**自己管主题的话，用 `setTheme('light' | 'dark' | 'system')`** —— 它把「设 `data-theme` + 调 `refreshBackdrop()`」合成一次调用。手写这两步很容易漏掉第二步：原生背景的明暗是那一步才告诉原生层的。漏掉就会得到"CSS 已经切到浅色、窗口背后还是系统那套深色"，浅色文字变深、深色文字糊在深色底上。`check-docs.py` 校验 `color-scheme` 与锁定块覆盖，就是为这件事兜底。
 
 ### `@rolling/ui-kit/shell`
 

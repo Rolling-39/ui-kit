@@ -141,7 +141,8 @@ def check_claims():
         'minimizeWindow', 'toggleMaximizeWindow', 'closeWindow', 'jsLog',
         'frontendLogPath', 'applyBackdrop',
         'readBackdropTint', 'readBackdropDarkness', 'initBackdrop', 'isBackdropActive',
-        'isBackdropForced', 'isThemeLocked', 'watchColorScheme', 'refreshBackdrop', 'createShell',
+        'isBackdropForced', 'isThemeLocked', 'watchColorScheme', 'refreshBackdrop', 'setTheme',
+        'clearBackdrop', 'createShell',
     ]
     for n in js_names:
         if not declared(n):

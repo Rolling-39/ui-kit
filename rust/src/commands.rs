@@ -132,6 +132,15 @@ pub fn ui_kit_apply_backdrop(
 }
 
 /// 清除原生背景，回到不透明窗口。
+///
+/// **这里刻意用 `clear_acrylic`，不要"按当前后端选 clear_mica"。**
+/// 上游 window-vibrancy 0.6.0 的两个实现在 Win11 上是同一行调用
+/// （`windows.rs` 里 `clear_acrylic` 与 `clear_mica` 都执行
+/// `DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_DISABLE, 4)`），
+/// 所以它对 mica 窗口同样有效；而在 Win10（build 17763 ~ 22523）
+/// `is_backdroptype_supported()` 为假，只有 clear_acrylic 走 SWCA 那条路可用，
+/// clear_mica 会直接返回 `UnsupportedPlatformVersion`。
+/// 换句话说 clear_acrylic 的覆盖面更广，改成 clear_mica 是功能退化。
 #[tauri::command]
 pub fn ui_kit_clear_backdrop(window: tauri::WebviewWindow) -> Result<(), String> {
     #[cfg(target_os = "windows")]

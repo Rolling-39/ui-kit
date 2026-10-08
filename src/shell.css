@@ -106,7 +106,9 @@ html.backdrop-ok.backdrop-forced .backdrop-fallback {
 }
 
 .tb-btn:hover { background: var(--primary-container); color: var(--primary); }
-.tb-close:hover { background: var(--danger); color: #fff; }
+/* 语义色底上的文字一律用 --on-semantic，不要写死 #fff ——
+   深色档的语义色是提亮过的，白字配上去只有 3.4~3.9:1。 */
+.tb-close:hover { background: var(--danger); color: var(--on-semantic); }
 
 .app-body {
     display: flex;
@@ -268,9 +270,13 @@ html.backdrop-ok.backdrop-forced .backdrop-fallback {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: var(--on-surface-variant);
+    /* 用带 alpha 的颜色，不要用 opacity：::-webkit-scrollbar-thumb 不是真实盒子，
+       多数 Chromium 版本会直接忽略它的 opacity，thumb 以实色渲染 ——
+       深色模式下就是一条很扎眼的浅灰实心块（设计意图是 30% 透明）。
+       第一行是不支持 color-mix 时的兜底（中性灰在两种档位下都看得见）。 */
+    background: rgba(128, 128, 128, 0.35);
+    background: color-mix(in srgb, var(--on-surface-variant) 35%, transparent);
     border-radius: 3px;
-    opacity: 0.3;
 }
 
 /* ── 响应式 ── */

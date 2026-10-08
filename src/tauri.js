@@ -118,3 +118,17 @@ export function applyBackdrop(tint, backend, dark) {
             detail: String(e), dark_honored: false,
         }));
 }
+
+/**
+ * 清除原生背景，回到不透明窗口。
+ *
+ * 命令内部按平台分发（Windows 用 clear_acrylic —— 上游在 Win11 上它与 clear_mica
+ * 是同一行 DWM 调用，而在 Win10 只有它能用，覆盖面更广），所以调用方不需要
+ * 关心当前是哪条后端。
+ *
+ * @returns {Promise<boolean>} 是否清除成功（不在 Tauri 内或调用失败时返回 false）
+ */
+export function clearBackdrop() {
+    if (!isTauri) return Promise.resolve(false);
+    return invoke('ui_kit_clear_backdrop').then(() => true).catch(() => false);
+}

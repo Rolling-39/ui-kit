@@ -73,3 +73,22 @@ jobs:
           npm install $env:GITHUB_WORKSPACE --no-audit --no-fund
           node $env:GITHUB_WORKSPACE/scripts/check-exports.mjs node_modules/@rolling/ui-kit
           Pop-Location
+
+  behavior:
+    name: 前端行为与纯函数
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 先装 Node 再做任何 node 命令，顺序反了就是"靠 runner 自带的版本碰运气"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 纯函数单测
+        run: node --test tests/format.mjs
+
+      # 不装 playwright / puppeteer：用 runner 自带的 Edge 加 Node 内置的 WebSocket。
+      # 本地没有 Edge 时该步骤会跳过并以 0 退出，不会误报失败。
+      - name: 浏览器行为断言
+        run: node tests/browser.mjs

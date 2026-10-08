@@ -236,3 +236,31 @@ export async function refreshBackdrop(backend = chosenBackend) {
     reflectBackdrop(r);
     return r;
 }
+
+/**
+ * 设置主题档位：`'light'` | `'dark'` | `'system'`，并同步原生背景。
+ *
+ * 套件只在 CSS 侧提供了锁定块（`html[data-theme]`），JS 侧原来是"设属性 +
+ * 调 refreshBackdrop()"两步 —— 而漏掉第二步的后果（CSS 换了配色、窗口背后的
+ * 原生背景没换）正是 README 反复警告的那件事。把两步合成一次调用，
+ * 消费方就没有漏掉的机会。
+ *
+ * `'system'` 档删掉 `data-theme` 即可：CSS 回落到「`:root` + `@media`」那一套，
+ * 而 readBackdropDarkness() 会把系统偏好就地解析成具体的 true/false 交给原生层
+ * （"跟随系统"不能以 null 传下去，原因见那个函数的注释）。
+ *
+ * @param {'light'|'dark'|'system'} mode
+ * @param {{backend?: string}} [opts] 换后端时传，默认沿用之前用过的
+ * @returns {Promise<object>} 原生层的回报，与 refreshBackdrop 同构
+ */
+export async function setTheme(mode, opts = {}) {
+    if (mode !== 'light' && mode !== 'dark' && mode !== 'system') {
+        throw new Error(`setTheme 只接受 light / dark / system，收到 ${JSON.stringify(mode)}`);
+    }
+    const html = document.documentElement;
+    if (mode === 'system') html.removeAttribute('data-theme');
+    else html.setAttribute('data-theme', mode);
+    log(`主题档位已设为 ${mode === 'system' ? '跟随系统' : mode === 'dark' ? '深色' : '浅色'}`
+        + '，并已同步原生窗口背景');
+    return refreshBackdrop(opts.backend || chosenBackend);
+}

@@ -26,6 +26,11 @@ README / REFERENCE / USAGE，本文不受约束。
 | P1-9 | `src/glass.css` | 补 `:focus-visible` 体系（品牌色 2px 圈），输入类排除以免叠圈 |
 | P2-9 | `src/glass.css`、`demo/panels/showcase.js` | `.chip` 支持 `<button>` 承载，demo 改成 button 示范 |
 | P2-11 | `src/ui.js`、`src/shell.js` | snackbar 加 `role`/`aria-live`（err 用 alert）；面板错误卡加 `role="alert"` |
+| P1-2 | `src/tokens.css`、`src/glass.css` | 四个语义色做成对变量 + 新增 `--on-semantic`（色块之上的文字色）。值是用 WCAG 公式反解的，四色 × 四场景全部 ≥ 4.5:1（最低 4.51） |
+| P1-3 | `src/theme.js`、`docs/REFERENCE.md` | 新增 `setTheme('light'\|'dark'\|'system')`，把「设 `data-theme` + 调 `refreshBackdrop()`」合成一次调用 |
+| P1-5 | `src/tauri.js`、`rust/src/commands.rs` | 补 `clearBackdrop()` JS 封装。**Rust 侧有意不动** —— 见下方"一条被推翻的断言" |
+| P1-6 | `src/shell.css` | 滚动条 thumb 改用 `color-mix` 带 alpha 的颜色（并保留中性灰兜底），不再依赖会被忽略的 `opacity` |
+| P1-10 + P2-4 | `tests/`、`.github/workflows/ci.yml` | 把验证正规化进仓库：13 条行为断言（自带静态服务与浏览器探测，不需 playwright）+ 7 条纯函数单测，CI 新增一个 job 跑它们 |
 
 ### P1-8 的一个兼容性风险（已在实现中规避）
 
@@ -46,16 +51,30 @@ README / REFERENCE / USAGE，本文不受约束。
 | **P1-8 优先级下调** | `check-docs.py` 的 `check_shell_hooks()` 已在 CI 里校验钩子与模板一致，模板改坏时 CI 先红。真实价值只剩"运行时错误信息更友好"，属 P2 级 |
 | **P0-5 漏一处** | 同款错误说法在 `demo/panels/contract.js` 也有一份，原文只点了 `USAGE.md`（已一并修） |
 
+### 一条被推翻的断言：P1-5 说「`clear_acrylic` 对 mica 窗口无效」
+
+这条是**错的**。上游 `window-vibrancy-0.6.0/src/windows.rs` 的实际实现：
+
+| 函数 | Win11（build ≥ 22523） | Win10（17763 ~ 22523） |
+|---|---|---|
+| `clear_acrylic` | `DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_DISABLE, 4)` | SWCA `ACCENT_DISABLED` |
+| `clear_mica` | **同一行调用** | 返回 `UnsupportedPlatformVersion` |
+
+两者在 Win11 上是**同一个 DWM 调用**，所以 `clear_acrylic` 对 mica 窗口本来就有效；而在 Win10 上只有它能用。
+按原建议"按当前生效的后端选 `clear_mica`"会让 Win10 直接失效 —— 那是**功能退化**。
+所以 Rust 侧一行没改，只在注释里写明了这段证据，防止后人再"修"一次。
+
+P1-5 的另一半（`tauri.js` 没有 JS 封装）成立，已补 `clearBackdrop()`。
+这条也说明：**"改法明确"的建议同样要去上游确认**，不能因为方向听起来合理就照做。
+
 ### 未做的（需要另行决定）
 
 | 项 | 为什么没做 |
 |---|---|
-| P1-2 | 改配色属于视觉变更，会动四个语义色的取值与 `tokens.css` 结构，需先确认观感 |
-| P1-1、P1-6 | 视觉变更 / 需在真实 WebView2 上先确认渲染（无头浏览器的滚动条实现与 WebView2 不同，测了不准） |
-| P1-3、P1-5 | 属于**新增公开 API**（`setTheme` / `clearBackdrop`），同意后需同步改 `check-docs.py` 的 `js_names` 清单 |
-| P1-10、P2-4、P2-5 | 护栏三件套，1~2 天，建议单独排期 |
-| P2-2、P2-3 | 需要真实机器的缩放档位 / 需要重新截图 |
-| P2 其余、P3 | 攒批 |
+| P1-1 | 纯审美：没有客观达标线，图标形状是设计判断 |
+| P2-5 | 重构（`showPanel` 状态机拆分）收益不直接，现阶段没有回归压力；等 P1-10 的测试跑一段时间、真出现边界 bug 再动 |
+| P2-2、P2-3 | 需要真实机器的缩放档位 / 需要重新截图，都依赖实机 |
+| P2-6、P2-7、P2-10、P3 全部 | 观感与锦上添花，没有客观标准 |
 
 > **新增导出时注意**：`scripts/check-docs.py` 里 `check_claims()` 的 `js_names` 是**硬编码清单**，
 > 新导出不加进去就没有护栏，而且 CI 不会变红（静默失效）。`check_theme_lock` 则是从 `tokens.css`

@@ -27,11 +27,30 @@
     /* 品牌色上的文字：亮暗都取深色（品牌色本身是亮的） */
     --on-primary: #003734;
 
-    /* 语义色亮暗一致，不需要成对 */
-    --success-rgb: 29, 158, 117;
-    --danger-rgb: 226, 75, 74;
-    --warn-rgb: 186, 117, 23;
-    --info-rgb: 55, 138, 221;
+    /* ══ 亮暗成对：语义色 ══
+       语义色在两个档位下的角色不同，所以必须成对，不能一套走天下：
+
+         浅色档 —— 既做色块底（上面压白字）又做彩色文字（压在浅玻璃上），
+                   两个需求都指向"更深"，所以整组压暗
+         深色档 —— 做彩色文字压深底时越亮越清楚；而色块上的文字改用深色
+                   （见 --on-semantic），所以色块本身也要够亮才撑得起对比度
+
+       下面这组值是用 WCAG 公式反解出来的，不是调出来的。四个色、四个场景
+       都实测 >= 4.5:1（最低 4.51，最高 5.09）。改配色之前先算一遍，
+       别凭眼睛调 —— 原来的值在这四个场景里全部不达标（3.03 ~ 3.93）。 */
+    --success-rgb-light: 23, 125, 93;
+    --success-rgb-dark: 27, 150, 111;
+    --danger-rgb-light: 215, 36, 35;
+    --danger-rgb-dark: 227, 83, 82;
+    --warn-rgb-light: 156, 98, 19;
+    --warn-rgb-dark: 185, 117, 23;
+    --info-rgb-light: 33, 112, 192;
+    --info-rgb-dark: 49, 135, 220;
+
+    /* 语义色块之上的文字色。浅色档色块深 → 白字；深色档色块亮 → 深字。
+       这里固定写 #fff 正是之前深色档按钮对比度不达标的根因。 */
+    --on-semantic-light: #FFFFFF;
+    --on-semantic-dark: #14181A;
 
     /* ══ 亮暗成对：表面 / 文字 / 描边 ══ */
     --surface-light: rgba(250, 253, 251, 0.18);
@@ -76,6 +95,11 @@
 
     /* ══ 当前档位：默认跟随系统（这里取浅色）══ */
     --primary-rgb: var(--primary-rgb-light);
+    --success-rgb: var(--success-rgb-light);
+    --danger-rgb: var(--danger-rgb-light);
+    --warn-rgb: var(--warn-rgb-light);
+    --info-rgb: var(--info-rgb-light);
+    --on-semantic: var(--on-semantic-light);
     --surface: var(--surface-light);
     --surface-glass: var(--surface-glass-light);
     --surface-glass-strong: var(--surface-glass-strong-light);
@@ -124,6 +148,11 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --primary-rgb: var(--primary-rgb-dark);
+        --success-rgb: var(--success-rgb-dark);
+        --danger-rgb: var(--danger-rgb-dark);
+        --warn-rgb: var(--warn-rgb-dark);
+        --info-rgb: var(--info-rgb-dark);
+        --on-semantic: var(--on-semantic-dark);
         --surface: var(--surface-dark);
         --surface-glass: var(--surface-glass-dark);
         --surface-glass-strong: var(--surface-glass-strong-dark);
@@ -155,6 +184,11 @@ html[data-theme="light"] {
     color-scheme: light;
 
     --primary-rgb: var(--primary-rgb-light);
+    --success-rgb: var(--success-rgb-light);
+    --danger-rgb: var(--danger-rgb-light);
+    --warn-rgb: var(--warn-rgb-light);
+    --info-rgb: var(--info-rgb-light);
+    --on-semantic: var(--on-semantic-light);
     --surface: var(--surface-light);
     --surface-glass: var(--surface-glass-light);
     --surface-glass-strong: var(--surface-glass-strong-light);
@@ -174,6 +208,11 @@ html[data-theme="dark"] {
     color-scheme: dark;
 
     --primary-rgb: var(--primary-rgb-dark);
+    --success-rgb: var(--success-rgb-dark);
+    --danger-rgb: var(--danger-rgb-dark);
+    --warn-rgb: var(--warn-rgb-dark);
+    --info-rgb: var(--info-rgb-dark);
+    --on-semantic: var(--on-semantic-dark);
     --surface: var(--surface-dark);
     --surface-glass: var(--surface-glass-dark);
     --surface-glass-strong: var(--surface-glass-strong-dark);
