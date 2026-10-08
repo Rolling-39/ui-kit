@@ -382,6 +382,10 @@ import { el, snack, log, timer, fmtSize } from '@rolling/ui-kit/ui';
 `el()` 是为了替代 `innerHTML` 字符串拼接：字符串拼 HTML 在插入文件名、设备返回的字符串这类
 外部数据时会引入注入面，而且拼错了不报错，只会静默少一段界面。
 
+**`html:` 这个键会绕过 `text:` 的自动转义**，只应传你自己写的静态标记（例如内联一段固定的 SVG）。
+外部来源的字符串一律走 `text:` —— 传进 `html:` 就等于把注入面又打开了。这个键存在的意义只是
+"确实需要一段固定标记时不必去拼字符串"，不是"HTML 的逃生通道"。
+
 ```js
 const row = el('div', { class: 'result-item success' }, [
     el('span', { class: 'name', text: fileName }),   // 自动转义
